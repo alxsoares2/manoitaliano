@@ -10,10 +10,12 @@ type PaymentMethod = "pix" | "card" | null;
 
 function MercadoPagoLogo() {
   return (
-    <svg viewBox="0 0 120 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-auto opacity-70">
-      <rect width="120" height="24" rx="4" fill="#009EE3" />
-      <text x="6" y="17" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11" fill="white">Mercado Pago</text>
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/mercadopago-logo.svg"
+      alt="Mercado Pago"
+      className="h-5 w-auto"
+    />
   );
 }
 
@@ -178,12 +180,13 @@ export default function PaymentStep({
 
           <div className="flex items-center gap-3">
             {/* Mercado Pago badge */}
-            <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5">
-              <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5">
-                <circle cx="8" cy="8" r="8" fill="#009EE3" />
-                <text x="4" y="12" fontFamily="Arial" fontWeight="bold" fontSize="9" fill="white">MP</text>
-              </svg>
-              <span className="text-xs font-medium text-muted">Mercado Pago</span>
+            <div className="flex items-center rounded-md border border-border bg-background px-2.5 py-1.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/mercadopago-logo.svg"
+                alt="Mercado Pago"
+                className="h-4 w-auto"
+              />
             </div>
 
             {/* SSL badge */}
