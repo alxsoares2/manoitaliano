@@ -33,6 +33,8 @@ export default function CustomersPanel() {
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", cep: "", address: "", address_number: "", neighborhood: "", complement: "", reference: "" });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -61,6 +63,28 @@ export default function CustomersPanel() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleCepBlur = async () => {
+    const digits = newCustomer.cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) { setCepError("CEP não encontrado"); return; }
+      setNewCustomer((p) => ({
+        ...p,
+        address: data.logradouro || p.address,
+        neighborhood: data.bairro || p.neighborhood,
+        address_number: "",
+      }));
+    } catch {
+      setCepError("Erro ao buscar CEP");
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const handleAddCustomer = async () => {
     if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
@@ -246,7 +270,26 @@ export default function CustomersPanel() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">CEP</label>
-                  <input type="text" value={newCustomer.cep} onChange={(e) => setNewCustomer((p) => ({ ...p, cep: e.target.value }))} placeholder="00000-000" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={newCustomer.cep}
+                      onChange={(e) => { setCepError(null); setNewCustomer((p) => ({ ...p, cep: e.target.value })); }}
+                      onBlur={handleCepBlur}
+                      placeholder="00000-000"
+                      maxLength={9}
+                      className={`w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold ${cepError ? "border-red-400" : "border-border"} ${cepLoading ? "pr-8" : ""}`}
+                    />
+                    {cepLoading && (
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                        <svg className="h-4 w-4 animate-spin text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {cepError && <p className="mt-1 text-xs text-red-500">{cepError}</p>}
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Bairro</label>
