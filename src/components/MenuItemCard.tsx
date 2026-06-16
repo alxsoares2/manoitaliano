@@ -11,14 +11,22 @@ function ItemImage({ url, name }: { url?: string | null; name: string }) {
   if (url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={url}
-        alt={name}
-        className="mb-4 h-40 w-full rounded-lg object-cover"
-      />
+      <img src={url} alt={name} className="mb-4 h-40 w-full rounded-lg object-cover" />
     );
   }
-  return null;
+  return (
+    <div className="mb-4 flex h-40 w-full items-center justify-center rounded-lg" style={{ backgroundColor: "#F5F5F0" }}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" className="h-12 w-12 opacity-30">
+        <circle cx="32" cy="32" r="28" stroke="#888" strokeWidth="2.5" />
+        <path d="M32 14c-9.94 0-18 8.06-18 18s8.06 18 18 18 18-8.06 18-18S41.94 14 32 14z" fill="#888" fillOpacity=".15" stroke="#888" strokeWidth="2" />
+        <circle cx="26" cy="28" r="2.5" fill="#888" />
+        <circle cx="38" cy="26" r="2" fill="#888" />
+        <circle cx="33" cy="37" r="2" fill="#888" />
+        <circle cx="24" cy="36" r="1.5" fill="#888" />
+        <circle cx="40" cy="36" r="1.5" fill="#888" />
+      </svg>
+    </div>
+  );
 }
 
 export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem }) {
