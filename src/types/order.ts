@@ -1,6 +1,7 @@
 export type CustomerDetails = {
   name: string;
   phone: string;
+  cep: string;
   address: string;
   number: string;
   neighborhood: string;
@@ -11,6 +12,7 @@ export type CustomerDetails = {
 export const emptyCustomerDetails: CustomerDetails = {
   name: "",
   phone: "",
+  cep: "",
   address: "",
   number: "",
   neighborhood: "",

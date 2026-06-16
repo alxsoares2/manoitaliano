@@ -11,18 +11,53 @@ type Errors = Partial<Record<keyof CustomerDetails, string>>;
 const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-widest text-muted";
 const inputBase = "w-full rounded-lg border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 outline-none transition focus:border-foreground";
 
+function formatCep(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length > 5) return digits.slice(0, 5) + "-" + digits.slice(5);
+  return digits;
+}
+
 export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void; onSubmit: (details: CustomerDetails) => void }) {
   const { totalPrice } = useCart();
   const [details, setDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [errors, setErrors] = useState<Errors>({});
+  const [welcome, setWelcome] = useState<string | null>(null);
 
-  const update = (field: keyof CustomerDetails, value: string) =>
+  const update = (field: keyof CustomerDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handlePhoneBlur = async () => {
+    const digits = details.phone.replace(/\D/g, "");
+    if (digits.length < 10) return;
+
+    try {
+      const res = await fetch(`/api/customers/lookup?phone=${digits}`);
+      const { customer } = await res.json();
+      if (customer) {
+        setDetails((prev) => ({
+          ...prev,
+          name: customer.name || prev.name,
+          cep: customer.cep || prev.cep,
+          address: customer.address || prev.address,
+          number: customer.number || prev.number,
+          neighborhood: customer.neighborhood || prev.neighborhood,
+          complement: customer.complement || prev.complement,
+          reference: customer.reference || prev.reference,
+        }));
+        setWelcome(`Bem-vindo de volta, ${customer.name.split(" ")[0]}! Seus dados foram preenchidos.`);
+      }
+    } catch {
+      // silently ignore lookup errors
+    }
+  };
 
   const validate = (): boolean => {
     const next: Errors = {};
-    if (!details.name.trim()) next.name = "Informe seu nome";
     if (details.phone.replace(/\D/g, "").length < 10) next.phone = "Informe um telefone válido";
+    if (!details.name.trim()) next.name = "Informe seu nome";
+    if (!details.cep.replace(/\D/g, "")) next.cep = "Informe o CEP";
     if (!details.address.trim()) next.address = "Informe a rua";
     if (!details.number.trim()) next.number = "Informe o número";
     if (!details.neighborhood.trim()) next.neighborhood = "Informe o bairro";
@@ -51,45 +86,126 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-        <div>
-          <label className={labelClass}>Nome completo</label>
-          <input type="text" value={details.name} onChange={(e) => update("name", e.target.value)} placeholder="Seu nome" className={inputClass(errors.name)} autoComplete="name" />
-          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
-        </div>
-
+        {/* Telefone primeiro */}
         <div>
           <label className={labelClass}>Telefone / WhatsApp</label>
-          <input type="tel" inputMode="numeric" value={details.phone} onChange={(e) => update("phone", formatPhone(e.target.value))} placeholder="(83) 99999-9999" className={inputClass(errors.phone)} autoComplete="tel" />
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={details.phone}
+            onChange={(e) => update("phone", formatPhone(e.target.value))}
+            onBlur={handlePhoneBlur}
+            placeholder="(83) 99999-9999"
+            className={inputClass(errors.phone)}
+            autoComplete="tel"
+          />
           {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
         </div>
 
+        {/* Mensagem de boas-vindas */}
+        {welcome && (
+          <div className="flex items-center gap-2 rounded-lg border border-gold-soft/30 bg-gold-soft/5 px-3 py-2.5 text-xs text-gold-soft">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{welcome}</span>
+          </div>
+        )}
+
+        {/* Nome */}
+        <div>
+          <label className={labelClass}>Nome completo</label>
+          <input
+            type="text"
+            value={details.name}
+            onChange={(e) => update("name", e.target.value)}
+            placeholder="Seu nome"
+            className={inputClass(errors.name)}
+            autoComplete="name"
+          />
+          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+        </div>
+
+        {/* CEP */}
+        <div>
+          <label className={labelClass}>CEP</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={details.cep}
+            onChange={(e) => update("cep", formatCep(e.target.value))}
+            placeholder="00000-000"
+            maxLength={9}
+            className={inputClass(errors.cep)}
+            autoComplete="postal-code"
+          />
+          {errors.cep && <p className="mt-1 text-xs text-red-500">{errors.cep}</p>}
+        </div>
+
+        {/* Rua + Número */}
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
             <label className={labelClass}>Rua</label>
-            <input type="text" value={details.address} onChange={(e) => update("address", e.target.value)} placeholder="Nome da rua" className={inputClass(errors.address)} autoComplete="address-line1" />
+            <input
+              type="text"
+              value={details.address}
+              onChange={(e) => update("address", e.target.value)}
+              placeholder="Nome da rua"
+              className={inputClass(errors.address)}
+              autoComplete="address-line1"
+            />
             {errors.address && <p className="mt-1 text-xs text-red-500">{errors.address}</p>}
           </div>
           <div>
             <label className={labelClass}>Número</label>
-            <input type="text" inputMode="numeric" value={details.number} onChange={(e) => update("number", e.target.value)} placeholder="123" className={inputClass(errors.number)} />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={details.number}
+              onChange={(e) => update("number", e.target.value)}
+              placeholder="123"
+              className={inputClass(errors.number)}
+            />
             {errors.number && <p className="mt-1 text-xs text-red-500">{errors.number}</p>}
           </div>
         </div>
 
+        {/* Bairro */}
         <div>
           <label className={labelClass}>Bairro</label>
-          <input type="text" value={details.neighborhood} onChange={(e) => update("neighborhood", e.target.value)} placeholder="Seu bairro" className={inputClass(errors.neighborhood)} autoComplete="address-level2" />
+          <input
+            type="text"
+            value={details.neighborhood}
+            onChange={(e) => update("neighborhood", e.target.value)}
+            placeholder="Seu bairro"
+            className={inputClass(errors.neighborhood)}
+            autoComplete="address-level2"
+          />
           {errors.neighborhood && <p className="mt-1 text-xs text-red-500">{errors.neighborhood}</p>}
         </div>
 
+        {/* Complemento */}
         <div>
           <label className={labelClass}>Complemento (opcional)</label>
-          <input type="text" value={details.complement} onChange={(e) => update("complement", e.target.value)} placeholder="Apto, bloco, casa..." className={inputClass()} />
+          <input
+            type="text"
+            value={details.complement}
+            onChange={(e) => update("complement", e.target.value)}
+            placeholder="Apto, bloco, casa..."
+            className={inputClass()}
+          />
         </div>
 
+        {/* Ponto de referência */}
         <div>
           <label className={labelClass}>Ponto de referência (opcional)</label>
-          <input type="text" value={details.reference} onChange={(e) => update("reference", e.target.value)} placeholder="Próximo a..." className={inputClass()} />
+          <input
+            type="text"
+            value={details.reference}
+            onChange={(e) => update("reference", e.target.value)}
+            placeholder="Próximo a..."
+            className={inputClass()}
+          />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
+import { upsertCustomer } from "@/lib/upsertCustomer";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       neighborhood: customer.neighborhood,
       complement: customer.complement || null,
       reference: customer.reference || null,
+      cep: customer.cep || null,
       items,
       total,
       status: "pendente",
@@ -61,6 +63,8 @@ export async function POST(request: Request) {
       .from("orders")
       .update({ payment_id: String(mpPayment.id) })
       .eq("id", order.id);
+
+    await upsertCustomer(customer);
 
     return NextResponse.json({
       orderId: order.id,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
+import { upsertCustomer } from "@/lib/upsertCustomer";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
         neighborhood: customer.neighborhood,
         complement: customer.complement || null,
         reference: customer.reference || null,
+        cep: customer.cep || null,
         items,
         total,
         status: "recebido",
@@ -61,6 +63,8 @@ export async function POST(request: Request) {
     if (orderError || !order) {
       return NextResponse.json({ error: "Pagamento aprovado, mas erro ao criar pedido. Contate-nos." }, { status: 500 });
     }
+
+    await upsertCustomer(customer);
 
     return NextResponse.json({ success: true, orderId: order.id });
   } catch (err: unknown) {
