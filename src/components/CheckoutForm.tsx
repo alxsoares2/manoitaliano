@@ -22,10 +22,40 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
   const [details, setDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [errors, setErrors] = useState<Errors>({});
   const [welcome, setWelcome] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
 
   const update = (field: keyof CustomerDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleCepBlur = async () => {
+    const digits = details.cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+
+    setCepLoading(true);
+    setErrors((prev) => ({ ...prev, cep: undefined }));
+
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+
+      if (data.erro) {
+        setErrors((prev) => ({ ...prev, cep: "CEP não encontrado" }));
+        return;
+      }
+
+      setDetails((prev) => ({
+        ...prev,
+        address: data.logradouro || prev.address,
+        neighborhood: data.bairro || prev.neighborhood,
+        number: "",
+      }));
+    } catch {
+      setErrors((prev) => ({ ...prev, cep: "Erro ao buscar CEP. Verifique sua conexão." }));
+    } finally {
+      setCepLoading(false);
+    }
   };
 
   const handlePhoneBlur = async () => {
@@ -129,16 +159,27 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
         {/* CEP */}
         <div>
           <label className={labelClass}>CEP</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={details.cep}
-            onChange={(e) => update("cep", formatCep(e.target.value))}
-            placeholder="00000-000"
-            maxLength={9}
-            className={inputClass(errors.cep)}
-            autoComplete="postal-code"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={details.cep}
+              onChange={(e) => update("cep", formatCep(e.target.value))}
+              onBlur={handleCepBlur}
+              placeholder="00000-000"
+              maxLength={9}
+              className={`${inputClass(errors.cep)} ${cepLoading ? "pr-9" : ""}`}
+              autoComplete="postal-code"
+            />
+            {cepLoading && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <svg className="h-4 w-4 animate-spin text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              </div>
+            )}
+          </div>
           {errors.cep && <p className="mt-1 text-xs text-red-500">{errors.cep}</p>}
         </div>
 
