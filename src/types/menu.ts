@@ -3,6 +3,7 @@ export type PizzaItem = {
   kind: "pizza";
   name: string;
   description: string;
+  image_url?: string | null;
   prices: {
     media: number;
     grande: number;
@@ -15,6 +16,7 @@ export type SimpleItem = {
   name: string;
   description?: string;
   price: number;
+  image_url?: string | null;
   options?: string[];
 };
 

@@ -9,6 +9,7 @@ export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
       kind: "pizza",
       name: record.name,
       description: record.description ?? "",
+      image_url: record.image_url,
       prices: {
         media: record.price_media ?? 0,
         grande: record.price_grande ?? 0,
@@ -22,6 +23,7 @@ export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
     name: record.name,
     description: record.description ?? undefined,
     price: record.price ?? 0,
+    image_url: record.image_url,
     options: record.options ?? undefined,
   };
 }

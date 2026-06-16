@@ -7,6 +7,20 @@ import { formatPrice } from "@/lib/format";
 import PizzaModal from "./PizzaModal";
 import SimpleItemModal from "./SimpleItemModal";
 
+function ItemImage({ url, name }: { url?: string | null; name: string }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt={name}
+        className="mb-4 h-40 w-full rounded-lg object-cover"
+      />
+    );
+  }
+  return null;
+}
+
 export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem }) {
   const { addItem } = useCart();
   const [modalOpen, setModalOpen] = useState(false);
@@ -18,10 +32,9 @@ export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem })
           onClick={() => setModalOpen(true)}
           className="group flex w-full flex-col rounded-xl border border-border bg-background-elevated p-5 text-left shadow-sm transition hover:border-foreground/20 hover:shadow-md"
         >
+          <ItemImage url={item.image_url} name={item.name} />
           <div className="flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-lg font-semibold text-foreground">
-              {item.name}
-            </h3>
+            <h3 className="font-display text-lg font-semibold text-foreground">{item.name}</h3>
             <span className="shrink-0 text-sm font-medium text-muted">
               {formatPrice(item.prices.media)} / {formatPrice(item.prices.grande)}
             </span>
@@ -43,13 +56,10 @@ export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem })
           onClick={() => setModalOpen(true)}
           className="group flex w-full flex-col rounded-xl border border-border bg-background-elevated p-5 text-left shadow-sm transition hover:border-foreground/20 hover:shadow-md"
         >
+          <ItemImage url={item.image_url} name={item.name} />
           <div className="flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-lg font-semibold text-foreground">
-              {item.name}
-            </h3>
-            <span className="shrink-0 text-sm font-medium text-muted">
-              {formatPrice(item.price)}
-            </span>
+            <h3 className="font-display text-lg font-semibold text-foreground">{item.name}</h3>
+            <span className="shrink-0 text-sm font-medium text-muted">{formatPrice(item.price)}</span>
           </div>
           {item.description && (
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.description}</p>
@@ -65,6 +75,7 @@ export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem })
 
   return (
     <div className="flex w-full flex-col rounded-xl border border-border bg-background-elevated p-5 shadow-sm">
+      <ItemImage url={item.image_url} name={item.name} />
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-display text-lg font-semibold text-foreground">{item.name}</h3>
         <span className="shrink-0 text-sm font-medium text-muted">{formatPrice(item.price)}</span>

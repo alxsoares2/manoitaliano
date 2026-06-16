@@ -84,6 +84,9 @@ export default function MenuManagement() {
                   item={item}
                   onToggleActive={handleToggleActive}
                   onEdit={setEditingItem}
+                  onImageUploaded={(id, url) =>
+                    setItems((prev) => prev.map((i) => i.id === id ? { ...i, image_url: url } : i))
+                  }
                 />
               ))}
             </div>
