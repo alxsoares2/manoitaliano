@@ -120,6 +120,54 @@ export default function Home() {
         </section>
       </main>
 
+      <section className="border-t border-border bg-background-elevated py-16">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <h2 className="mb-8 font-display text-2xl font-bold text-gold sm:text-3xl">
+            Sobre nós
+          </h2>
+          <div className="grid gap-8 sm:grid-cols-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-lg text-gold">📍</span>
+              <h3 className="font-semibold text-foreground">Onde estamos</h3>
+              <p className="text-sm leading-relaxed text-muted">
+                Localizada em Manaíra, Av. Bananeiras 190, João Pessoa/PB.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-lg text-gold">🍕</span>
+              <h3 className="font-semibold text-foreground">Nossa massa</h3>
+              <p className="text-sm leading-relaxed text-muted">
+                Pizzas feitas com massa de longa fermentação natural que dura 48 horas, garantindo leveza e sabor autêntico. Ingredientes frescos e selecionados, valorizando sabores artesanais.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-lg text-gold">📱</span>
+              <h3 className="font-semibold text-foreground">WhatsApp</h3>
+              <a
+                href="https://wa.me/5583993228832"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm leading-relaxed text-muted transition hover:text-gold"
+              >
+                (83) 99322-8832
+              </a>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-lg text-gold">📸</span>
+              <h3 className="font-semibold text-foreground">Instagram</h3>
+              <a
+                href="https://instagram.com/basilicopizzas"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm leading-relaxed text-muted transition hover:text-gold"
+              >
+                @basilicopizzas
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <CartSidebar />
     </>
   );
