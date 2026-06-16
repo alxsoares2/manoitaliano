@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0908;
-  --background-elevated: #16130f;
-  --foreground: #f5efe6;
-  --muted: #b8ada0;
-  --gold: #cda35b;
-  --gold-soft: #e3c98f;
-  --border: #2a2521;
+  --background: #FAFAF7;
+  --background-elevated: #FFFFFF;
+  --foreground: #1A1A1A;
+  --muted: #888880;
+  --gold: #1A1A1A;
+  --gold-soft: #3D5A2A;
+  --border: #E8E8E4;
 }
 
 @theme inline {
@@ -29,7 +29,7 @@ body {
 }
 
 * {
-  scrollbar-color: var(--gold) var(--background-elevated);
+  scrollbar-color: var(--gold-soft) var(--border);
 }
 
 .admin-theme {

@@ -61,11 +61,11 @@ export default function Home() {
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-8 sm:px-6">
-        <section className="mb-10 text-center">
-          <h1 className="font-display text-3xl font-bold text-gold-soft sm:text-4xl">
+        <section className="mb-12 text-center">
+          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
             Cardápio
           </h1>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
             Pizzas artesanais, entradas e doces — feitos com ingredientes
             selecionados. Toque em um item para montar seu pedido.
           </p>
@@ -75,8 +75,8 @@ export default function Home() {
           <p className="text-center text-sm text-muted">Carregando cardápio...</p>
         ) : (
           menu.map((category) => (
-            <section key={category.id} id={category.id} className="mb-12 scroll-mt-32">
-              <h2 className="mb-4 font-display text-2xl font-semibold text-gold-soft">
+            <section key={category.id} id={category.id} className="mb-14 scroll-mt-32">
+              <h2 className="mb-5 font-display text-2xl font-semibold text-foreground">
                 {category.title}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -88,8 +88,8 @@ export default function Home() {
           ))
         )}
 
-        <section id="bordas" className="mb-12 scroll-mt-32">
-          <h2 className="mb-2 font-display text-2xl font-semibold text-gold-soft">
+        <section id="bordas" className="mb-14 scroll-mt-32">
+          <h2 className="mb-2 font-display text-2xl font-semibold text-foreground">
             Bordas Recheadas
           </h2>
           <p className="mb-4 text-sm text-muted">
@@ -120,53 +120,48 @@ export default function Home() {
         </section>
       </main>
 
-      <section className="border-t border-border bg-background-elevated py-16">
+      <footer className="border-t border-border bg-background-elevated py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <h2 className="mb-8 font-display text-2xl font-bold text-gold sm:text-3xl">
-            Sobre nós
-          </h2>
-          <div className="grid gap-8 sm:grid-cols-4">
+          <div className="mb-10 flex flex-col items-center gap-3 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Basílico Pizzas" className="h-16 w-auto object-contain opacity-80" />
+            <p className="max-w-sm text-sm leading-relaxed text-muted">
+              Pizzas artesanais com massa de longa fermentação natural — 48 horas de maturação para garantir leveza e sabor autêntico.
+            </p>
+          </div>
+
+          <div className="grid gap-8 border-t border-border pt-10 sm:grid-cols-4">
             <div className="flex flex-col gap-2">
-              <span className="text-lg text-gold">📍</span>
-              <h3 className="font-semibold text-foreground">Onde estamos</h3>
-              <p className="text-sm leading-relaxed text-muted">
-                Localizada em Manaíra, Av. Bananeiras 190, João Pessoa/PB.
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Endereço</h3>
+              <p className="text-sm leading-relaxed text-foreground">
+                Av. Bananeiras, 190<br />Manaíra, João Pessoa/PB
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-lg text-gold">🍕</span>
-              <h3 className="font-semibold text-foreground">Nossa massa</h3>
-              <p className="text-sm leading-relaxed text-muted">
-                Pizzas feitas com massa de longa fermentação natural que dura 48 horas, garantindo leveza e sabor autêntico. Ingredientes frescos e selecionados, valorizando sabores artesanais.
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Nossa massa</h3>
+              <p className="text-sm leading-relaxed text-foreground">
+                Fermentação natural de 48h, ingredientes frescos e selecionados.
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-lg text-gold">📱</span>
-              <h3 className="font-semibold text-foreground">WhatsApp</h3>
-              <a
-                href="https://wa.me/5583993228832"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm leading-relaxed text-muted transition hover:text-gold"
-              >
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">WhatsApp</h3>
+              <a href="https://wa.me/5583993228832" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
                 (83) 99322-8832
               </a>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-lg text-gold">📸</span>
-              <h3 className="font-semibold text-foreground">Instagram</h3>
-              <a
-                href="https://instagram.com/basilicopizzas"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm leading-relaxed text-muted transition hover:text-gold"
-              >
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Instagram</h3>
+              <a href="https://instagram.com/basilicopizzas" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
                 @basilicopizzas
               </a>
             </div>
           </div>
+
+          <p className="mt-10 text-center text-xs text-muted">
+            © {new Date().getFullYear()} Basílico Pizzas · Delivery premium em João Pessoa
+          </p>
         </div>
-      </section>
+      </footer>
 
       <CartSidebar />
     </>

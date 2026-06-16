@@ -32,13 +32,12 @@ declare global {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/60 outline-none transition focus:border-gold";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 outline-none transition focus:border-foreground";
+
+const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-widest text-muted";
 
 export default function CardForm({
-  customer,
-  items,
-  total,
-  onSuccess,
+  customer, items, total, onSuccess,
 }: {
   customer: CustomerDetails;
   items: object[];
@@ -46,12 +45,7 @@ export default function CardForm({
   onSuccess: () => void;
 }) {
   const [card, setCard] = useState<CardData>({
-    cardNumber: "",
-    cardHolder: customer.name,
-    expiryMonth: "",
-    expiryYear: "",
-    cvv: "",
-    cpf: "",
+    cardNumber: "", cardHolder: customer.name, expiryMonth: "", expiryYear: "", cvv: "", cpf: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,10 +54,7 @@ export default function CardForm({
 
   useEffect(() => {
     if (sdkReady && window.MercadoPago && !mpRef.current) {
-      mpRef.current = new window.MercadoPago(
-        process.env.NEXT_PUBLIC_MP_PUBLIC_KEY!,
-        { locale: "pt-BR" }
-      );
+      mpRef.current = new window.MercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY!, { locale: "pt-BR" });
     }
   }, [sdkReady]);
 
@@ -75,18 +66,12 @@ export default function CardForm({
 
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
-    return digits
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    return digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!mpRef.current) {
-      setError("SDK do Mercado Pago não carregou. Recarregue a página.");
-      return;
-    }
+    if (!mpRef.current) { setError("SDK do Mercado Pago não carregou. Recarregue a página."); return; }
 
     const rawNumber = card.cardNumber.replace(/\s/g, "");
     if (rawNumber.length < 13) { setError("Número do cartão inválido."); return; }
@@ -111,30 +96,16 @@ export default function CardForm({
       const res = await fetch("/api/payment/create-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer,
-          items,
-          total,
-          cardToken: token.id,
-          paymentMethodId: token.payment_method_id,
-          issuer: token.issuer_id,
-          cpf: card.cpf,
-        }),
+        body: JSON.stringify({ customer, items, total, cardToken: token.id, paymentMethodId: token.payment_method_id, issuer: token.issuer_id, cpf: card.cpf }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao processar pagamento.");
-
       onSuccess();
     } catch (err) {
       console.error("CardForm error:", JSON.stringify(err));
-      // MP SDK v2 throws an array of error objects
       const firstErr = Array.isArray(err) ? err[0] : err;
-      const msg =
-        firstErr?.message
-        ?? firstErr?.cause?.[0]?.description
-        ?? (err instanceof Error ? err.message : null)
-        ?? "Erro ao processar cartão. Tente novamente.";
+      const msg = firstErr?.message ?? firstErr?.cause?.[0]?.description ?? (err instanceof Error ? err.message : null) ?? "Erro ao processar cartão. Tente novamente.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -143,107 +114,45 @@ export default function CardForm({
 
   return (
     <>
-      <Script
-        src="https://sdk.mercadopago.com/js/v2"
-        strategy="lazyOnload"
-        onReady={() => setSdkReady(true)}
-      />
+      <Script src="https://sdk.mercadopago.com/js/v2" strategy="lazyOnload" onReady={() => setSdkReady(true)} />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-            Número do cartão
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={card.cardNumber}
-            onChange={(e) => update("cardNumber", formatCardNumber(e.target.value))}
-            placeholder="0000 0000 0000 0000"
-            maxLength={19}
-            className={inputClass}
-          />
+          <label className={labelClass}>Número do cartão</label>
+          <input type="text" inputMode="numeric" value={card.cardNumber} onChange={(e) => update("cardNumber", formatCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} className={inputClass} />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-            Nome no cartão
-          </label>
-          <input
-            type="text"
-            value={card.cardHolder}
-            onChange={(e) => update("cardHolder", e.target.value.toUpperCase())}
-            placeholder="NOME COMO NO CARTÃO"
-            className={inputClass}
-          />
+          <label className={labelClass}>Nome no cartão</label>
+          <input type="text" value={card.cardHolder} onChange={(e) => update("cardHolder", e.target.value.toUpperCase())} placeholder="NOME COMO NO CARTÃO" className={inputClass} />
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-              Mês
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={card.expiryMonth}
-              onChange={(e) => update("expiryMonth", e.target.value.replace(/\D/g, "").slice(0, 2))}
-              placeholder="MM"
-              maxLength={2}
-              className={inputClass}
-            />
+            <label className={labelClass}>Mês</label>
+            <input type="text" inputMode="numeric" value={card.expiryMonth} onChange={(e) => update("expiryMonth", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="MM" maxLength={2} className={inputClass} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-              Ano
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={card.expiryYear}
-              onChange={(e) => update("expiryYear", e.target.value.replace(/\D/g, "").slice(0, 2))}
-              placeholder="AA"
-              maxLength={2}
-              className={inputClass}
-            />
+            <label className={labelClass}>Ano</label>
+            <input type="text" inputMode="numeric" value={card.expiryYear} onChange={(e) => update("expiryYear", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="AA" maxLength={2} className={inputClass} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-              CVV
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={card.cvv}
-              onChange={(e) => update("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="123"
-              maxLength={4}
-              className={inputClass}
-            />
+            <label className={labelClass}>CVV</label>
+            <input type="text" inputMode="numeric" value={card.cvv} onChange={(e) => update("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" maxLength={4} className={inputClass} />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
-            CPF do titular
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={card.cpf}
-            onChange={(e) => update("cpf", formatCpf(e.target.value))}
-            placeholder="000.000.000-00"
-            maxLength={14}
-            className={inputClass}
-          />
+          <label className={labelClass}>CPF do titular</label>
+          <input type="text" inputMode="numeric" value={card.cpf} onChange={(e) => update("cpf", formatCpf(e.target.value))} placeholder="000.000.000-00" maxLength={14} className={inputClass} />
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-500">{error}</p>}
 
         <button
           type="submit"
           disabled={loading || !sdkReady}
-          className="w-full rounded-xl bg-gold px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Processando..." : `Pagar ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}`}
         </button>
