@@ -1,6 +1,7 @@
 export type CustomerRecord = {
   phone: string;
   name: string;
+  cep: string | null;
   address: string | null;
   address_number: string | null;
   neighborhood: string | null;
