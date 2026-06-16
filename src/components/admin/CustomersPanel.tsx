@@ -29,6 +29,10 @@ export default function CustomersPanel() {
   const [selected, setSelected] = useState<CustomerRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomerRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", cep: "", address: "", address_number: "", neighborhood: "", complement: "", reference: "" });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +61,24 @@ export default function CustomersPanel() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleAddCustomer = async () => {
+    if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
+      setSaveError("Nome e telefone são obrigatórios.");
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const phone = newCustomer.phone.replace(/\D/g, "");
+    const { error } = await supabase.from("customers").upsert(
+      { ...newCustomer, phone, updated_at: new Date().toISOString() },
+      { onConflict: "phone" }
+    );
+    setSaving(false);
+    if (error) { setSaveError("Erro ao salvar cliente."); return; }
+    setShowAddModal(false);
+    setNewCustomer({ name: "", phone: "", cep: "", address: "", address_number: "", neighborhood: "", complement: "", reference: "" });
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -103,8 +125,8 @@ export default function CustomersPanel() {
         </div>
       )}
 
-      {/* Busca */}
-      <div className="mb-4">
+      {/* Busca + botão novo */}
+      <div className="mb-4 flex items-center gap-3">
         <input
           type="text"
           value={search}
@@ -112,6 +134,15 @@ export default function CustomersPanel() {
           placeholder="Buscar por nome ou telefone..."
           className="w-full max-w-sm rounded-lg border border-border bg-background-elevated px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-gold"
         />
+        <button
+          onClick={() => { setShowAddModal(true); setSaveError(null); }}
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gold-soft"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+          </svg>
+          Novo cliente
+        </button>
       </div>
 
       {loading ? (
@@ -190,6 +221,64 @@ export default function CustomersPanel() {
                 className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 {deleting ? "Deletando..." : "Deletar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal novo cliente */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-background-elevated p-6 shadow-xl">
+            <h3 className="mb-5 text-lg font-semibold text-foreground">Cadastrar cliente</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Nome *</label>
+                  <input type="text" value={newCustomer.name} onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))} placeholder="Nome completo" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Telefone *</label>
+                  <input type="text" value={newCustomer.phone} onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))} placeholder="(83) 99999-9999" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">CEP</label>
+                  <input type="text" value={newCustomer.cep} onChange={(e) => setNewCustomer((p) => ({ ...p, cep: e.target.value }))} placeholder="00000-000" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Bairro</label>
+                  <input type="text" value={newCustomer.neighborhood} onChange={(e) => setNewCustomer((p) => ({ ...p, neighborhood: e.target.value }))} placeholder="Bairro" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Rua</label>
+                  <input type="text" value={newCustomer.address} onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))} placeholder="Nome da rua" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Número</label>
+                  <input type="text" value={newCustomer.address_number} onChange={(e) => setNewCustomer((p) => ({ ...p, address_number: e.target.value }))} placeholder="123" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Complemento</label>
+                <input type="text" value={newCustomer.complement} onChange={(e) => setNewCustomer((p) => ({ ...p, complement: e.target.value }))} placeholder="Apto, bloco..." className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted">Ponto de referência</label>
+                <input type="text" value={newCustomer.reference} onChange={(e) => setNewCustomer((p) => ({ ...p, reference: e.target.value }))} placeholder="Próximo a..." className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-gold" />
+              </div>
+              {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setShowAddModal(false)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-muted transition hover:border-foreground hover:text-foreground">
+                Cancelar
+              </button>
+              <button onClick={handleAddCustomer} disabled={saving} className="flex-1 rounded-xl bg-gold py-2.5 text-sm font-semibold text-white transition hover:bg-gold-soft disabled:opacity-60">
+                {saving ? "Salvando..." : "Cadastrar"}
               </button>
             </div>
           </div>
