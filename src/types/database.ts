@@ -3,7 +3,8 @@ export type OrderStatus =
   | "recebido"
   | "em_preparo"
   | "saiu_para_entrega"
-  | "entregue";
+  | "entregue"
+  | "cancelado";
 
 export type OrderItemRecord = {
   name: string;

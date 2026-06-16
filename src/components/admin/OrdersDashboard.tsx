@@ -7,10 +7,12 @@ import { playNewOrderAlert } from "@/lib/alertSound";
 import { buildOutForDeliveryMessage, sendWhatsappMessage } from "@/lib/whatsapp";
 import KanbanBoard from "./KanbanBoard";
 import DaySummary from "./DaySummary";
+import CancelModal from "./CancelModal";
 
 export default function OrdersDashboard() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelTarget, setCancelTarget] = useState<OrderRecord | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -65,6 +67,29 @@ export default function OrdersDashboard() {
     }
   };
 
+  const handleCancel = async (order: OrderRecord, reason: string) => {
+    setCancelTarget(null);
+    const status: OrderStatus = "cancelado";
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, status } : o))
+    );
+
+    await supabase
+      .from("orders")
+      .update({ status, cancel_reason: reason })
+      .eq("id", order.id);
+
+    const orderNumber = order.id.slice(0, 8).toUpperCase();
+    const message =
+      `Olá ${order.customer_name}, infelizmente seu pedido #${orderNumber} da Basílico Pizzas foi cancelado. ` +
+      `Motivo: ${reason}. Entre em contato pelo (83) 99322-8832 para mais informações.`;
+
+    sendWhatsappMessage(order.customer_phone, message).catch(
+      (error) => console.error("Erro ao enviar WhatsApp de cancelamento:", error)
+    );
+  };
+
   return (
     <>
       <DaySummary orders={orders} />
@@ -74,7 +99,19 @@ export default function OrdersDashboard() {
       ) : orders.length === 0 ? (
         <p className="text-center text-sm text-muted">Nenhum pedido ainda.</p>
       ) : (
-        <KanbanBoard orders={orders} onAdvance={handleAdvance} />
+        <KanbanBoard
+          orders={orders}
+          onAdvance={handleAdvance}
+          onCancel={(order) => setCancelTarget(order)}
+        />
+      )}
+
+      {cancelTarget && (
+        <CancelModal
+          order={cancelTarget}
+          onConfirm={handleCancel}
+          onClose={() => setCancelTarget(null)}
+        />
       )}
     </>
   );

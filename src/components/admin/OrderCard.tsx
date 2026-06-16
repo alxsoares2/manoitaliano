@@ -9,11 +9,14 @@ import { buildWhatsappLink } from "@/lib/whatsapp";
 export default function OrderCard({
   order,
   onAdvance,
+  onCancel,
 }: {
   order: OrderRecord;
   onAdvance: (order: OrderRecord, status: OrderStatus) => void;
+  onCancel: (order: OrderRecord) => void;
 }) {
   const isDelivered = order.status === "entregue";
+  const isCancelled = order.status === "cancelado";
   const upcoming = nextStatus(order.status);
   const orderNumber = order.id.slice(0, 8).toUpperCase();
   const time = new Date(order.created_at).toLocaleString("pt-BR", {
@@ -32,8 +35,12 @@ export default function OrderCard({
 
   return (
     <div
-      className={`rounded-xl border border-border bg-background-elevated p-5 shadow-sm transition ${
-        isDelivered ? "opacity-60" : ""
+      className={`rounded-xl border bg-background-elevated p-5 shadow-sm transition ${
+        isCancelled
+          ? "border-red-200 opacity-50"
+          : isDelivered
+          ? "border-border opacity-60"
+          : "border-border"
       }`}
     >
       <div>
@@ -82,6 +89,14 @@ export default function OrderCard({
               className="w-full rounded-full bg-gold px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gold-soft"
             >
               Avançar para {STATUS_LABELS[upcoming]}
+            </button>
+          )}
+          {!isCancelled && (
+            <button
+              onClick={() => onCancel(order)}
+              className="w-full rounded-full border border-red-300 bg-background px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-red-500 transition hover:bg-red-50 hover:text-red-700"
+            >
+              Cancelar pedido
             </button>
           )}
           <button

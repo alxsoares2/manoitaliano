@@ -13,6 +13,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   em_preparo: "Em preparo",
   saiu_para_entrega: "Saiu para entrega",
   entregue: "Entregue",
+  cancelado: "Cancelado",
 };
 
 export function nextStatus(status: OrderStatus): OrderStatus | null {
@@ -27,4 +28,5 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   em_preparo: "border-orange-200 bg-orange-50 text-orange-700",
   saiu_para_entrega: "border-purple-200 bg-purple-50 text-purple-700",
   entregue: "border-green-200 bg-green-50 text-green-700",
+  cancelado: "border-red-200 bg-red-50 text-red-700",
 };
