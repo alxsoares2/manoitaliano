@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useAdminAuth } from "@/context/AdminAuthContext";
 import OrdersDashboard from "./OrdersDashboard";
 import MenuManagement from "./MenuManagement";
 import CustomersPanel from "./CustomersPanel";
@@ -10,137 +10,104 @@ import CouponsPanel from "./CouponsPanel";
 import CrmPanel from "./CrmPanel";
 import AdminDashboard from "./AdminDashboard";
 import AdminReports from "./AdminReports";
+import UsersPanel from "./UsersPanel";
+import { AdminRole } from "@/lib/adminAuth";
 
-type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios";
+type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios" | "usuarios";
+
+type TabDef = { id: Tab; label: string; roles: AdminRole[] };
+
+const TABS: TabDef[] = [
+  { id: "pedidos",    label: "Pedidos",           roles: ["admin", "gerente", "operador"] },
+  { id: "cardapio",   label: "Gestão de Cardápio", roles: ["admin", "gerente"] },
+  { id: "clientes",   label: "Clientes",           roles: ["admin", "gerente"] },
+  { id: "cupons",     label: "Cupons",             roles: ["admin", "gerente"] },
+  { id: "crm",        label: "CRM",                roles: ["admin", "gerente"] },
+  { id: "dashboard",  label: "Dashboard",          roles: ["admin", "gerente"] },
+  { id: "relatorios", label: "Relatórios",         roles: ["admin", "gerente"] },
+  { id: "usuarios",   label: "Usuários",           roles: ["admin"] },
+];
+
+const TAB_SUBTITLES: Record<Tab, string> = {
+  pedidos:    "Atualização em tempo real — mais recentes no topo",
+  cardapio:   "Gerencie os itens exibidos no cardápio do cliente",
+  clientes:   "Clientes ordenados por total gasto",
+  cupons:     "Crie e gerencie cupons de desconto",
+  crm:        "Dispare campanhas de WhatsApp por segmento",
+  dashboard:  "Métricas e desempenho em tempo real",
+  relatorios: "Consulte e exporte pedidos por período",
+  usuarios:   "Gerencie usuários e permissões de acesso",
+};
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+  admin: "Admin",
+  gerente: "Gerente",
+  operador: "Operador",
+};
 
 export default function AdminPanel() {
   const router = useRouter();
+  const { user, logout } = useAdminAuth();
   const [tab, setTab] = useState<Tab>("pedidos");
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await logout();
     router.replace("/admin/login");
   };
+
+  const role = user?.role ?? "operador";
+  const visibleTabs = TABS.filter((t) => t.roles.includes(role));
+
+  // Garante que a tab atual é visível para o papel do usuário
+  const activeTab = visibleTabs.find((t) => t.id === tab) ? tab : visibleTabs[0]?.id ?? "pedidos";
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Painel Basílico
-          </h1>
-          <p className="text-sm text-muted">
-            {tab === "pedidos"
-              ? "Atualização em tempo real — mais recentes no topo"
-              : tab === "cardapio"
-                ? "Gerencie os itens exibidos no cardápio do cliente"
-                : tab === "clientes"
-                  ? "Clientes ordenados por total gasto"
-                  : tab === "cupons"
-                    ? "Crie e gerencie cupons de desconto"
-                    : tab === "crm"
-                      ? "Dispare campanhas de WhatsApp por segmento"
-                      : tab === "dashboard"
-                        ? "Métricas e desempenho em tempo real"
-                        : "Consulte e exporte pedidos por período"}
-          </p>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Painel Basílico</h1>
+          <p className="text-sm text-muted">{TAB_SUBTITLES[activeTab]}</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="rounded-full border border-border bg-background-elevated px-4 py-2 text-sm text-muted shadow-sm transition hover:border-gold hover:text-gold"
-        >
-          Sair
-        </button>
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="hidden sm:flex flex-col items-end leading-tight">
+              <span className="text-sm font-medium text-foreground">{user.name}</span>
+              <span className="text-xs text-muted">{ROLE_LABELS[user.role]}</span>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="rounded-full border border-border bg-background-elevated px-4 py-2 text-sm text-muted shadow-sm transition hover:border-gold hover:text-gold"
+          >
+            Sair
+          </button>
+        </div>
       </div>
 
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setTab("pedidos")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "pedidos"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Pedidos
-        </button>
-        <button
-          onClick={() => setTab("cardapio")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "cardapio"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Gestão de Cardápio
-        </button>
-        <button
-          onClick={() => setTab("clientes")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "clientes"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Clientes
-        </button>
-        <button
-          onClick={() => setTab("cupons")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "cupons"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Cupons
-        </button>
-        <button
-          onClick={() => setTab("crm")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "crm"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          CRM
-        </button>
-        <button
-          onClick={() => setTab("dashboard")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "dashboard"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => setTab("relatorios")}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-            tab === "relatorios"
-              ? "bg-gold text-white"
-              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
-          }`}
-        >
-          Relatórios
-        </button>
+      <div className="mb-6 flex flex-wrap gap-2">
+        {visibleTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+              activeTab === t.id
+                ? "bg-gold text-white"
+                : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {tab === "pedidos" ? (
-        <OrdersDashboard />
-      ) : tab === "cardapio" ? (
-        <MenuManagement />
-      ) : tab === "clientes" ? (
-        <CustomersPanel />
-      ) : tab === "cupons" ? (
-        <CouponsPanel />
-      ) : tab === "crm" ? (
-        <CrmPanel />
-      ) : tab === "dashboard" ? (
-        <AdminDashboard />
-      ) : (
-        <AdminReports />
-      )}
+      {activeTab === "pedidos"    && <OrdersDashboard />}
+      {activeTab === "cardapio"   && <MenuManagement />}
+      {activeTab === "clientes"   && <CustomersPanel />}
+      {activeTab === "cupons"     && <CouponsPanel />}
+      {activeTab === "crm"        && <CrmPanel />}
+      {activeTab === "dashboard"  && <AdminDashboard />}
+      {activeTab === "relatorios" && <AdminReports />}
+      {activeTab === "usuarios"   && <UsersPanel />}
     </main>
   );
 }

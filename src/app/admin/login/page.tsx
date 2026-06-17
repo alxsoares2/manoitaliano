@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -16,12 +15,17 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const res = await fetch("/api/admin/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
     setLoading(false);
 
-    if (error) {
-      setError("E-mail ou senha incorretos.");
+    if (!res.ok) {
+      const { error } = await res.json();
+      setError(error ?? "E-mail ou senha incorretos.");
       return;
     }
 
@@ -34,12 +38,8 @@ export default function AdminLoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-border bg-background-elevated p-8 shadow-sm"
       >
-        <h1 className="text-2xl font-semibold text-foreground">
-          Painel Basílico
-        </h1>
-        <p className="mt-1 mb-6 text-sm text-muted">
-          Entre com sua conta de administrador
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground">Painel Basílico</h1>
+        <p className="mt-1 mb-6 text-sm text-muted">Entre com sua conta</p>
 
         <div className="mb-4">
           <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-gold">
@@ -69,9 +69,7 @@ export default function AdminLoginPage() {
           />
         </div>
 
-        {error && (
-          <p className="mb-4 text-center text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="mb-4 text-center text-sm text-red-400">{error}</p>}
 
         <button
           type="submit"

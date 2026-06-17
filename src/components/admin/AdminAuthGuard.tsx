@@ -1,29 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { AdminAuthProvider, useAdminAuth } from "@/context/AdminAuthContext";
 
-export default function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+function Guard({ children }: { children: React.ReactNode }) {
+  const { user } = useAdminAuth();
   const router = useRouter();
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    if (user === null) router.replace("/admin/login");
+  }, [user, router]);
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (session === null) router.replace("/admin/login");
-  }, [session, router]);
-
-  if (session === undefined) {
+  if (user === undefined) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
         Carregando...
@@ -31,7 +20,15 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
     );
   }
 
-  if (!session) return null;
+  if (!user) return null;
 
   return <>{children}</>;
+}
+
+export default function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminAuthProvider>
+      <Guard>{children}</Guard>
+    </AdminAuthProvider>
+  );
 }
