@@ -14,6 +14,7 @@ type FormState = {
   price_media: string;
   price_grande: string;
   options: string;
+  unavailable_options: string[];
 };
 
 function toFormState(item: MenuItemRecord | null): FormState {
@@ -27,6 +28,7 @@ function toFormState(item: MenuItemRecord | null): FormState {
       price_media: "",
       price_grande: "",
       options: "",
+      unavailable_options: [],
     };
   }
 
@@ -39,6 +41,7 @@ function toFormState(item: MenuItemRecord | null): FormState {
     price_media: item.price_media?.toString() ?? "",
     price_grande: item.price_grande?.toString() ?? "",
     options: item.options?.join(", ") ?? "",
+    unavailable_options: item.unavailable_options ?? [],
   };
 }
 
@@ -74,6 +77,7 @@ export default function MenuItemModal({
       price_media: form.kind === "pizza" ? Number(form.price_media) || 0 : null,
       price_grande: form.kind === "pizza" ? Number(form.price_grande) || 0 : null,
       options: form.kind === "simple" && options.length > 0 ? options : null,
+      unavailable_options: form.kind === "simple" && form.unavailable_options.length > 0 ? form.unavailable_options : null,
     };
 
     const { error: saveError } = isEditing
@@ -243,6 +247,57 @@ export default function MenuItemModal({
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-gold"
                 />
               </div>
+
+              {/* Disponibilidade por sabor */}
+              {form.options.trim() && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-gold">
+                    Disponibilidade dos sabores
+                  </label>
+                  <div className="space-y-1.5">
+                    {form.options
+                      .split(",")
+                      .map((o) => o.trim())
+                      .filter(Boolean)
+                      .map((opt) => {
+                        const isUnavailable = form.unavailable_options.includes(opt);
+                        return (
+                          <label
+                            key={opt}
+                            className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          >
+                            <span className={isUnavailable ? "text-muted line-through" : "text-foreground"}>
+                              {opt}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {isUnavailable && (
+                                <span className="text-xs font-medium text-red-400">Indisponível</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    unavailable_options: isUnavailable
+                                      ? f.unavailable_options.filter((x) => x !== opt)
+                                      : [...f.unavailable_options, opt],
+                                  }))
+                                }
+                                className={`rounded-full px-3 py-0.5 text-xs font-semibold transition ${
+                                  isUnavailable
+                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                    : "bg-red-100 text-red-600 hover:bg-red-200"
+                                }`}
+                              >
+                                {isUnavailable ? "Reativar" : "Pausar"}
+                              </button>
+                            </div>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

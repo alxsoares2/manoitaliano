@@ -7,7 +7,8 @@ import { formatPrice } from "@/lib/format";
 
 export default function SimpleItemModal({ item, onClose }: { item: SimpleItem; onClose: () => void }) {
   const { addItem } = useCart();
-  const [option, setOption] = useState(item.options?.[0] ?? "");
+  const firstAvailable = item.options?.find((o) => !item.unavailableOptions?.includes(o)) ?? "";
+  const [option, setOption] = useState(firstAvailable);
 
   const handleAdd = () => {
     addItem({ itemId: item.id, name: item.name, unitPrice: item.price, option: option || undefined });
@@ -43,17 +44,34 @@ export default function SimpleItemModal({ item, onClose }: { item: SimpleItem; o
           <div className="mb-6">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Escolha uma opção</h3>
             <div className="space-y-2">
-              {item.options.map((opt) => (
-                <label
-                  key={opt}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition ${
-                    option === opt ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/40"
-                  }`}
-                >
-                  <input type="radio" name="option" className="accent-foreground" checked={option === opt} onChange={() => setOption(opt)} />
-                  {opt}
-                </label>
-              ))}
+              {item.options.map((opt) => {
+                const unavailable = item.unavailableOptions?.includes(opt) ?? false;
+                return (
+                  <label
+                    key={opt}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition ${
+                      unavailable
+                        ? "cursor-not-allowed border-border opacity-40"
+                        : option === opt
+                        ? "border-foreground bg-foreground/5"
+                        : "border-border hover:border-foreground/40"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="option"
+                      className="accent-foreground"
+                      checked={option === opt}
+                      disabled={unavailable}
+                      onChange={() => !unavailable && setOption(opt)}
+                    />
+                    <span className={unavailable ? "line-through" : ""}>{opt}</span>
+                    {unavailable && (
+                      <span className="ml-auto text-xs font-medium text-red-400">Indisponível</span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}

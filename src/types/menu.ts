@@ -18,6 +18,7 @@ export type SimpleItem = {
   price: number;
   image_url?: string | null;
   options?: string[];
+  unavailableOptions?: string[];
 };
 
 export type BordaOption = {

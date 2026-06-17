@@ -25,6 +25,7 @@ export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
     price: record.price ?? 0,
     image_url: record.image_url,
     options: record.options ?? undefined,
+    unavailableOptions: record.unavailable_options ?? undefined,
   };
 }
 
