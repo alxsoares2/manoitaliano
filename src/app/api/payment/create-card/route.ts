@@ -4,6 +4,7 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { upsertCustomer } from "@/lib/upsertCustomer";
 import { validateCoupon } from "@/lib/coupons";
 import { sendWhatsappText, buildOrderConfirmationMessage } from "@/lib/zapi";
+import { friendlyCardError } from "@/lib/mpErrors";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -51,9 +52,8 @@ export async function POST(request: Request) {
     });
 
     if (mpPayment.status !== "approved") {
-      const detail = mpPayment.status_detail ?? "rejected";
       return NextResponse.json(
-        { error: `Pagamento não aprovado (${detail}). Verifique os dados do cartão.` },
+        { error: friendlyCardError(mpPayment.status_detail) },
         { status: 402 }
       );
     }
