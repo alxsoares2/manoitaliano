@@ -169,9 +169,12 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="mt-10 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Basílico Pizzas · Delivery premium em João Pessoa
-          </p>
+          <div className="mt-10 flex flex-col items-center gap-2 text-center text-xs text-muted">
+            <p>© {new Date().getFullYear()} Basílico Pizzas · Delivery premium em João Pessoa</p>
+            <a href="/politica-de-privacidade" className="underline transition hover:text-foreground">
+              Política de Privacidade
+            </a>
+          </div>
         </div>
       </footer>
 
