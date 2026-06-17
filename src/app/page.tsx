@@ -54,6 +54,39 @@ export default function Home() {
   return (
     <>
       <Header />
+
+      {/* Hero */}
+      <section
+        className="relative overflow-hidden"
+        style={{ backgroundColor: "#1A1A1A" }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, #3D5A2A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #3D5A2A 0%, transparent 40%)",
+          }}
+        />
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 py-16 text-center sm:px-6 sm:py-24">
+          <span className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+            Basílico Pizzas
+          </span>
+          <h1 className="font-display text-4xl font-bold text-white sm:text-6xl">
+            Peça Agora! 🍕
+          </h1>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-white/70 sm:text-lg">
+            Pizza artesanal direto da nossa cozinha
+          </p>
+          <a
+            href="#cardapio"
+            className="mt-8 rounded-full bg-white px-8 py-3.5 text-sm font-semibold uppercase tracking-widest text-[#1A1A1A] transition hover:bg-gold-soft hover:text-white"
+          >
+            Ver Cardápio
+          </a>
+        </div>
+      </section>
+
       <CategoryNav
         categories={[
           ...menu.map((c) => ({ id: c.id, title: c.title })),
@@ -62,10 +95,10 @@ export default function Home() {
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-8 sm:px-6">
-        <section className="mb-12 text-center">
-          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+        <section id="cardapio" className="mb-12 scroll-mt-32 text-center">
+          <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
             Cardápio
-          </h1>
+          </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
             Pizzas artesanais, entradas e doces — feitos com ingredientes
             selecionados. Toque em um item para montar seu pedido.
