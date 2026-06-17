@@ -93,13 +93,17 @@ export default function CustomersPanel() {
     }
     setSaving(true);
     setSaveError(null);
-    const phone = newCustomer.phone.replace(/\D/g, "");
-    const { error } = await supabase.from("customers").upsert(
-      { ...newCustomer, phone, updated_at: new Date().toISOString() },
-      { onConflict: "phone" }
-    );
+    const res = await fetch("/api/admin/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newCustomer),
+    });
     setSaving(false);
-    if (error) { setSaveError("Erro ao salvar cliente."); return; }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setSaveError(data?.error ?? "Erro ao salvar cliente.");
+      return;
+    }
     setShowAddModal(false);
     setNewCustomer({ name: "", phone: "", cep: "", address: "", address_number: "", neighborhood: "", complement: "", reference: "" });
   };
@@ -107,7 +111,7 @@ export default function CustomersPanel() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    await supabase.from("customers").delete().eq("phone", deleteTarget.phone);
+    await fetch(`/api/admin/customers?phone=${encodeURIComponent(deleteTarget.phone)}`, { method: "DELETE" });
     setCustomers((prev) => prev.filter((c) => c.phone !== deleteTarget.phone));
     setDeleteTarget(null);
     setDeleting(false);
