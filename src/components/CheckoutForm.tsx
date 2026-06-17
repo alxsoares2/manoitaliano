@@ -52,12 +52,17 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
         return;
       }
 
-      setDetails((prev) => ({
-        ...prev,
-        address: data.logradouro || prev.address,
-        neighborhood: data.bairro || prev.neighborhood,
-        number: "",
-      }));
+      setDetails((prev) => {
+        const newAddress = data.logradouro || prev.address;
+        // Só limpa o número se o logradouro mudou (novo CEP digitado manualmente)
+        const addressChanged = data.logradouro && data.logradouro !== prev.address;
+        return {
+          ...prev,
+          address: newAddress,
+          neighborhood: data.bairro || prev.neighborhood,
+          number: addressChanged ? "" : prev.number,
+        };
+      });
     } catch {
       setErrors((prev) => ({ ...prev, cep: "Erro ao buscar CEP. Verifique sua conexão." }));
     } finally {
