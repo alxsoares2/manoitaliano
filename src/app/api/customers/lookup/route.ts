@@ -9,11 +9,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ customer: null });
   }
 
-  const { data } = await supabase
-    .from("customers")
-    .select("name, cep, address, number, neighborhood, complement, reference")
-    .eq("phone", phone)
-    .maybeSingle();
+  // RPC compara telefones normalizados (só dígitos), cobrindo tanto registros
+  // criados pelo trigger de pedido (telefone formatado) quanto cadastro manual.
+  const { data } = await supabase.rpc("lookup_customer", { p_digits: phone });
+  const row = Array.isArray(data) ? data[0] : null;
 
-  return NextResponse.json({ customer: data ?? null });
+  if (!row) return NextResponse.json({ customer: null });
+
+  return NextResponse.json({
+    customer: {
+      name: row.name,
+      cep: row.cep ?? "",
+      address: row.address ?? "",
+      number: row.address_number ?? "",
+      neighborhood: row.neighborhood ?? "",
+      complement: row.complement ?? "",
+      reference: row.reference ?? "",
+    },
+  });
 }
