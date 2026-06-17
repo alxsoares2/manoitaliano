@@ -16,7 +16,7 @@ export default function CrmPanel() {
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState<Segment>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState("Olá {nome}! 🍕 A Basílico Pizzas preparou algo especial pra você. Use o cupom {cupom} no seu próximo pedido!");
+  const [message, setMessage] = useState("Olá {nome}! 🍕 A Basílico Pizzas preparou algo especial pra você. Use o cupom {cupom} no seu próximo pedido!\n\nPeça agora: {link}");
   const [coupon, setCoupon] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
@@ -111,7 +111,10 @@ export default function CrmPanel() {
   if (loading) return <p className="text-center text-sm text-muted">Carregando clientes...</p>;
 
   const previewName = customers.find((c) => selected.has(c.phone))?.name.split(" ")[0] ?? "Cliente";
-  const preview = message.replaceAll("{nome}", previewName).replaceAll("{cupom}", coupon || "CUPOM");
+  const preview = message
+    .replaceAll("{nome}", previewName)
+    .replaceAll("{cupom}", coupon || "CUPOM")
+    .replaceAll("{link}", "https://basilicopizzas.com.br");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -201,8 +204,9 @@ export default function CrmPanel() {
             className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
           />
           <p className="mt-1 text-xs text-muted">
-            Use <code className="rounded bg-background px-1 text-foreground">{"{nome}"}</code> e{" "}
-            <code className="rounded bg-background px-1 text-foreground">{"{cupom}"}</code> para personalizar.
+            Use <code className="rounded bg-background px-1 text-foreground">{"{nome}"}</code>,{" "}
+            <code className="rounded bg-background px-1 text-foreground">{"{cupom}"}</code> e{" "}
+            <code className="rounded bg-background px-1 text-foreground">{"{link}"}</code> para personalizar.
           </p>
         </div>
 

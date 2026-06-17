@@ -3,11 +3,14 @@ import { formatPhoneForWhatsapp } from "@/lib/whatsapp";
 
 type Recipient = { phone: string; name: string };
 
+const SITE_URL = "https://basilicopizzas.com.br";
+
 function personalize(template: string, name: string, coupon: string) {
   const firstName = name.trim().split(" ")[0] || name;
   return template
     .replaceAll("{nome}", firstName)
-    .replaceAll("{cupom}", coupon);
+    .replaceAll("{cupom}", coupon)
+    .replaceAll("{link}", SITE_URL);
 }
 
 export async function POST(request: Request) {
