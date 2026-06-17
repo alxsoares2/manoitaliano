@@ -7,10 +7,11 @@ import OrdersDashboard from "./OrdersDashboard";
 import MenuManagement from "./MenuManagement";
 import CustomersPanel from "./CustomersPanel";
 import CouponsPanel from "./CouponsPanel";
+import CrmPanel from "./CrmPanel";
 import AdminDashboard from "./AdminDashboard";
 import AdminReports from "./AdminReports";
 
-type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "dashboard" | "relatorios";
+type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios";
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -37,9 +38,11 @@ export default function AdminPanel() {
                   ? "Clientes ordenados por total gasto"
                   : tab === "cupons"
                     ? "Crie e gerencie cupons de desconto"
-                    : tab === "dashboard"
-                      ? "Métricas e desempenho em tempo real"
-                      : "Consulte e exporte pedidos por período"}
+                    : tab === "crm"
+                      ? "Dispare campanhas de WhatsApp por segmento"
+                      : tab === "dashboard"
+                        ? "Métricas e desempenho em tempo real"
+                        : "Consulte e exporte pedidos por período"}
           </p>
         </div>
         <button
@@ -92,6 +95,16 @@ export default function AdminPanel() {
           Cupons
         </button>
         <button
+          onClick={() => setTab("crm")}
+          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+            tab === "crm"
+              ? "bg-gold text-white"
+              : "border border-border bg-background-elevated text-muted hover:border-gold hover:text-gold"
+          }`}
+        >
+          CRM
+        </button>
+        <button
           onClick={() => setTab("dashboard")}
           className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
             tab === "dashboard"
@@ -121,6 +134,8 @@ export default function AdminPanel() {
         <CustomersPanel />
       ) : tab === "cupons" ? (
         <CouponsPanel />
+      ) : tab === "crm" ? (
+        <CrmPanel />
       ) : tab === "dashboard" ? (
         <AdminDashboard />
       ) : (
