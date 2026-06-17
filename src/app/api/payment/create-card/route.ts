@@ -10,7 +10,7 @@ const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
 
 export async function POST(request: Request) {
-  const { customer, items, total, cardToken, paymentMethodId, issuer, installments, cpf, couponCode } =
+  const { customer, items, total, deliveryFee, cardToken, paymentMethodId, issuer, installments, cpf, couponCode } =
     await request.json();
 
   if (!customer || !items || !total || !cardToken) {
@@ -19,9 +19,10 @@ export async function POST(request: Request) {
 
   // Revalida o cupom server-side e recalcula o desconto
   const subtotal = total;
+  const fee = Number(deliveryFee) || 0;
   let discount = 0;
   let appliedCoupon: string | null = null;
-  let finalTotal = subtotal;
+  let afterDiscount = subtotal;
 
   if (couponCode) {
     const result = await validateCoupon(supabase, couponCode, customer.phone, subtotal);
@@ -29,9 +30,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 422 });
     }
     discount = result.discount;
-    finalTotal = result.finalTotal;
+    afterDiscount = result.finalTotal;
     appliedCoupon = result.coupon.code;
   }
+
+  const finalTotal = afterDiscount + fee;
 
   try {
     const mpPayment = await payment.create({
@@ -73,6 +76,7 @@ export async function POST(request: Request) {
         items,
         subtotal,
         discount,
+        delivery_fee: fee,
         coupon_code: appliedCoupon,
         total: finalTotal,
         status: "recebido",

@@ -16,11 +16,12 @@ function MercadoPagoLogo() {
 }
 
 export default function PaymentStep({
-  customer, items, total, onBack, onPixCreated, onCardSuccess,
+  customer, items, total, deliveryFee = 0, onBack, onPixCreated, onCardSuccess,
 }: {
   customer: CustomerDetails;
   items: CartItem[];
   total: number;
+  deliveryFee?: number;
   onBack: () => void;
   onPixCreated: (data: { qrCode: string; qrCodeBase64: string; orderId: string }) => void;
   onCardSuccess: () => void;
@@ -35,7 +36,8 @@ export default function PaymentStep({
   const [couponError, setCouponError] = useState<string | null>(null);
   const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
 
-  const finalTotal = applied ? Math.max(0, total - applied.discount) : total;
+  const discount = applied?.discount ?? 0;
+  const finalTotal = Math.max(0, total - discount) + deliveryFee;
 
   const orderItems = items.map((item) => ({
     name: item.name, size: item.size, borda: item.borda, option: item.option,
@@ -79,7 +81,7 @@ export default function PaymentStep({
       const res = await fetch("/api/payment/create-pix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer, items: orderItems, total, couponCode: applied?.code ?? null }),
+        body: JSON.stringify({ customer, items: orderItems, total, deliveryFee, couponCode: applied?.code ?? null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar PIX.");
@@ -155,6 +157,12 @@ export default function PaymentStep({
               <span>−{formatPrice(applied.discount)}</span>
             </div>
           )}
+          {deliveryFee > 0 && (
+            <div className="flex justify-between text-muted">
+              <span>Frete</span>
+              <span>{formatPrice(deliveryFee)}</span>
+            </div>
+          )}
           <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground">
             <span>Total</span>
             <span>{formatPrice(finalTotal)}</span>
@@ -220,7 +228,7 @@ export default function PaymentStep({
 
         {method === "card" && (
           <div className="mt-6">
-            <CardForm customer={customer} items={orderItems} total={total} displayTotal={finalTotal} couponCode={applied?.code ?? null} onSuccess={onCardSuccess} />
+            <CardForm customer={customer} items={orderItems} total={total} displayTotal={finalTotal} deliveryFee={deliveryFee} couponCode={applied?.code ?? null} onSuccess={onCardSuccess} />
           </div>
         )}
       </div>

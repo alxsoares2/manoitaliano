@@ -37,12 +37,13 @@ const inputClass =
 const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-widest text-muted";
 
 export default function CardForm({
-  customer, items, total, displayTotal, couponCode, onSuccess,
+  customer, items, total, displayTotal, deliveryFee = 0, couponCode, onSuccess,
 }: {
   customer: CustomerDetails;
   items: object[];
   total: number;
   displayTotal?: number;
+  deliveryFee?: number;
   couponCode?: string | null;
   onSuccess: () => void;
 }) {
@@ -99,7 +100,7 @@ export default function CardForm({
       const res = await fetch("/api/payment/create-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer, items, total, couponCode: couponCode ?? null, cardToken: token.id, paymentMethodId: token.payment_method_id, issuer: token.issuer_id, cpf: card.cpf }),
+        body: JSON.stringify({ customer, items, total, deliveryFee, couponCode: couponCode ?? null, cardToken: token.id, paymentMethodId: token.payment_method_id, issuer: token.issuer_id, cpf: card.cpf }),
       });
 
       const data = await res.json();

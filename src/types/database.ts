@@ -32,6 +32,7 @@ export type OrderRecord = {
   payment_method?: "pix" | "card" | null;
   subtotal?: number | null;
   discount?: number | null;
+  delivery_fee?: number | null;
   coupon_code?: string | null;
   cep?: string | null;
 };

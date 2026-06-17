@@ -8,7 +8,7 @@ const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
 
 export async function POST(request: Request) {
-  const { customer, items, total, couponCode } = await request.json();
+  const { customer, items, total, deliveryFee, couponCode } = await request.json();
 
   if (!customer || !items || !total) {
     return NextResponse.json({ error: "Dados do pedido incompletos." }, { status: 400 });
@@ -16,9 +16,10 @@ export async function POST(request: Request) {
 
   // Revalida o cupom server-side e recalcula o desconto
   const subtotal = total;
+  const fee = Number(deliveryFee) || 0;
   let discount = 0;
   let appliedCoupon: string | null = null;
-  let finalTotal = subtotal;
+  let afterDiscount = subtotal;
 
   if (couponCode) {
     const result = await validateCoupon(supabase, couponCode, customer.phone, subtotal);
@@ -26,9 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 422 });
     }
     discount = result.discount;
-    finalTotal = result.finalTotal;
+    afterDiscount = result.finalTotal;
     appliedCoupon = result.coupon.code;
   }
+
+  const finalTotal = afterDiscount + fee;
 
   // 1. Insert order as "pendente" first to get its ID
   const { data: order, error: orderError } = await supabase
@@ -45,6 +48,7 @@ export async function POST(request: Request) {
       items,
       subtotal,
       discount,
+      delivery_fee: fee,
       coupon_code: appliedCoupon,
       total: finalTotal,
       status: "pendente",

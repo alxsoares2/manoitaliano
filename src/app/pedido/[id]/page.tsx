@@ -186,17 +186,24 @@ export default function OrderTrackingPage() {
           </ul>
 
           <div className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
+            {((order.discount != null && order.discount > 0) ||
+              (order.delivery_fee != null && Number(order.delivery_fee) > 0)) && (
+              <div className="flex justify-between text-muted">
+                <span>Subtotal</span>
+                <span>{formatPrice(Number(order.subtotal ?? order.total))}</span>
+              </div>
+            )}
             {order.discount != null && order.discount > 0 && (
-              <>
-                <div className="flex justify-between text-muted">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(Number(order.subtotal ?? order.total))}</span>
-                </div>
-                <div className="flex justify-between text-gold-soft">
-                  <span>Desconto{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
-                  <span>−{formatPrice(Number(order.discount))}</span>
-                </div>
-              </>
+              <div className="flex justify-between text-gold-soft">
+                <span>Desconto{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                <span>−{formatPrice(Number(order.discount))}</span>
+              </div>
+            )}
+            {order.delivery_fee != null && Number(order.delivery_fee) > 0 && (
+              <div className="flex justify-between text-muted">
+                <span>Frete</span>
+                <span>{formatPrice(Number(order.delivery_fee))}</span>
+              </div>
             )}
             <div className="flex justify-between font-semibold text-foreground">
               <span>Total</span>

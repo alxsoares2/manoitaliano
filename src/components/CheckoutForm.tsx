@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { lookupFrete } from "@/data/frete";
 import { CustomerDetails, emptyCustomerDetails } from "@/types/order";
 
 type Errors = Partial<Record<keyof CustomerDetails, string>>;
@@ -17,12 +18,18 @@ function formatCep(value: string) {
   return digits;
 }
 
-export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void; onSubmit: (details: CustomerDetails) => void }) {
+export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void; onSubmit: (details: CustomerDetails, deliveryFee: number) => void }) {
   const { totalPrice } = useCart();
   const [details, setDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [errors, setErrors] = useState<Errors>({});
   const [welcome, setWelcome] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
+
+  // Frete calculado pelo bairro. undefined = ainda não informado; null = fora da cobertura.
+  const deliveryFee =
+    details.neighborhood.trim() === "" ? undefined : lookupFrete(details.neighborhood);
+  const freteNotFound = details.neighborhood.trim() !== "" && deliveryFee == null;
+  const orderTotal = totalPrice + (deliveryFee ?? 0);
 
   const update = (field: keyof CustomerDetails, value: string) => {
     setDetails((prev) => ({ ...prev, [field]: value }));
@@ -91,6 +98,8 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
     if (!details.address.trim()) next.address = "Informe a rua";
     if (!details.number.trim()) next.number = "Informe o número";
     if (!details.neighborhood.trim()) next.neighborhood = "Informe o bairro";
+    else if (lookupFrete(details.neighborhood) == null)
+      next.neighborhood = "Bairro fora da área de entrega";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -98,7 +107,8 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    onSubmit(details);
+    if (deliveryFee == null) return;
+    onSubmit(details, deliveryFee);
   };
 
   const inputClass = (err?: string) =>
@@ -223,6 +233,21 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
             autoComplete="address-level2"
           />
           {errors.neighborhood && <p className="mt-1 text-xs text-red-500">{errors.neighborhood}</p>}
+          {!errors.neighborhood && freteNotFound && (
+            <a
+              href="https://wa.me/5583993228832"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800"
+            >
+              <span>⚠️ Bairro não encontrado. Entre em contato pelo WhatsApp para combinarmos a entrega.</span>
+            </a>
+          )}
+          {!errors.neighborhood && deliveryFee != null && (
+            <p className="mt-1.5 text-xs text-gold-soft">
+              ✓ Entregamos no seu bairro — frete {formatPrice(deliveryFee)}
+            </p>
+          )}
         </div>
 
         {/* Complemento */}
@@ -251,11 +276,31 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
       </div>
 
       <div className="border-t border-border px-5 py-4">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-sm text-muted">Total</span>
-          <span className="font-display text-xl font-semibold text-foreground">{formatPrice(totalPrice)}</span>
+        <div className="mb-3 space-y-1.5 text-sm">
+          <div className="flex justify-between text-muted">
+            <span>Subtotal</span>
+            <span>{formatPrice(totalPrice)}</span>
+          </div>
+          <div className="flex justify-between text-muted">
+            <span>Frete</span>
+            <span>
+              {deliveryFee != null
+                ? formatPrice(deliveryFee)
+                : freteNotFound
+                  ? "—"
+                  : "Informe o bairro"}
+            </span>
+          </div>
+          <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground">
+            <span>Total</span>
+            <span className="font-display text-lg">{formatPrice(orderTotal)}</span>
+          </div>
         </div>
-        <button type="submit" className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft">
+        <button
+          type="submit"
+          disabled={deliveryFee == null}
+          className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-40"
+        >
           Escolher pagamento →
         </button>
       </div>

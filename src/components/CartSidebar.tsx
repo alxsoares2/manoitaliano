@@ -8,6 +8,7 @@ import CheckoutForm from "./CheckoutForm";
 import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
 import PixDisplay from "./PixDisplay";
+import CartCrossSell from "./CartCrossSell";
 import { CustomerDetails, emptyCustomerDetails } from "@/types/order";
 
 type Step = "cart" | "checkout" | "payment" | "pix" | "success";
@@ -19,6 +20,7 @@ export default function CartSidebar() {
   const [orderDetails, setOrderDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [pixData, setPixData] = useState<PixData | null>(null);
   const [pixConfirmed, setPixConfirmed] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(0);
 
   // Limpa o carrinho e mostra sucesso SOMENTE quando o PIX é confirmado pelo
   // webhook (status sai de "pendente"). Se o cliente fechar sem pagar, o
@@ -59,8 +61,9 @@ export default function CartSidebar() {
     }
   };
 
-  const handleCheckoutSubmit = (details: CustomerDetails) => {
+  const handleCheckoutSubmit = (details: CustomerDetails, fee: number) => {
     setOrderDetails(details);
+    setDeliveryFee(fee);
     setStep("payment");
   };
 
@@ -86,7 +89,7 @@ export default function CartSidebar() {
   );
 
   if (step === "checkout") return sidebar(<CheckoutForm onBack={() => setStep("cart")} onSubmit={handleCheckoutSubmit} />);
-  if (step === "payment") return sidebar(<PaymentStep customer={orderDetails} items={items} total={totalPrice} onBack={() => setStep("checkout")} onPixCreated={handlePixCreated} onCardSuccess={handleCardSuccess} />);
+  if (step === "payment") return sidebar(<PaymentStep customer={orderDetails} items={items} total={totalPrice} deliveryFee={deliveryFee} onBack={() => setStep("checkout")} onPixCreated={handlePixCreated} onCardSuccess={handleCardSuccess} />);
   if (step === "pix" && pixData) return sidebar(<PixDisplay qrCode={pixData.qrCode} qrCodeBase64={pixData.qrCodeBase64} confirmed={pixConfirmed} onClose={handleClose} />);
   if (step === "success") return sidebar(<OrderSuccess details={orderDetails} onClose={handleClose} />);
 
@@ -142,6 +145,8 @@ export default function CartSidebar() {
               ))}
             </ul>
           )}
+
+          {items.length > 0 && <CartCrossSell />}
         </div>
 
         <div className="border-t border-border px-5 py-4">
