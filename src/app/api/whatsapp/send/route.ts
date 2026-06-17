@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
   const instanceId = process.env.ZAPI_INSTANCE_ID;
   const token = process.env.ZAPI_TOKEN;
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN;
 
   if (!instanceId || !token) {
     return NextResponse.json(
@@ -22,10 +23,12 @@ export async function POST(request: Request) {
   }
 
   const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (clientToken) headers["Client-Token"] = clientToken;
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       phone: formatPhoneForWhatsapp(phone),
       message,

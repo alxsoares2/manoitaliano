@@ -26,11 +26,14 @@ export async function POST(request: Request) {
 
   const instanceId = process.env.ZAPI_INSTANCE_ID;
   const token = process.env.ZAPI_TOKEN;
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN;
   if (!instanceId || !token) {
     return NextResponse.json({ error: "Credenciais da Z-API não configuradas." }, { status: 500 });
   }
 
   const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (clientToken) headers["Client-Token"] = clientToken;
 
   let sent = 0;
   let failed = 0;
@@ -42,7 +45,7 @@ export async function POST(request: Request) {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ phone: formatPhoneForWhatsapp(r.phone), message: text }),
       });
       if (res.ok) {
