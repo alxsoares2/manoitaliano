@@ -10,10 +10,15 @@ import { formatPrice } from "@/lib/format";
 import SimpleItemModal from "./SimpleItemModal";
 
 export default function CartCrossSell() {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [drinks, setDrinks] = useState<MenuItemRecord[]>([]);
   const [nutella, setNutella] = useState<MenuItemRecord | null>(null);
   const [optionItem, setOptionItem] = useState<SimpleItem | null>(null);
+
+  // Esconde sugestões que já estão no carrinho
+  const inCart = new Set(items.map((i) => i.itemId));
+  const visibleDrinks = drinks.filter((d) => !inCart.has(d.id));
+  const showNutella = nutella && !inCart.has(nutella.id);
 
   useEffect(() => {
     let active = true;
@@ -52,16 +57,16 @@ export default function CartCrossSell() {
     addItem({ itemId: item.id, name: item.name, unitPrice: item.price ?? 0 });
   };
 
-  if (drinks.length === 0 && !nutella) return null;
+  if (visibleDrinks.length === 0 && !showNutella) return null;
 
   return (
     <div className="mt-5 space-y-5">
       {/* Bebidas */}
-      {drinks.length > 0 && (
+      {visibleDrinks.length > 0 && (
         <div className="rounded-xl border border-border bg-background p-4">
           <p className="mb-3 text-sm font-semibold text-foreground">Adicionar bebida? 🥤</p>
           <div className="space-y-2">
-            {drinks.map((d) => (
+            {visibleDrinks.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-foreground">{d.name}</p>
@@ -80,7 +85,7 @@ export default function CartCrossSell() {
       )}
 
       {/* Pizza Nutella */}
-      {nutella && (
+      {showNutella && nutella && (
         <div className="rounded-xl border border-gold-soft/30 bg-gold-soft/5 p-4">
           <p className="mb-3 text-sm font-semibold text-foreground">Encerre com chave de ouro! 🍫</p>
           <div className="flex items-center gap-3">
