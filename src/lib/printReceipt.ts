@@ -99,12 +99,26 @@ export function buildReceiptHtml(order: OrderRecord): string {
             font-size: 14px;
             padding-left: 12px;
           }
+          .sub {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+          }
           .total {
             display: flex;
             justify-content: space-between;
             font-size: 20px;
             font-weight: bold;
             margin-top: 8px;
+          }
+          .obs-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 2px;
+          }
+          .obs {
+            font-size: 16px;
+            font-weight: bold;
           }
         </style>
       </head>
@@ -127,7 +141,24 @@ export function buildReceiptHtml(order: OrderRecord): string {
 
         <hr>
 
+        ${
+          order.discount && Number(order.discount) > 0
+            ? `<div class="sub"><span>Subtotal</span><span>${formatPrice(Number(order.subtotal ?? order.total))}</span></div>
+               <div class="sub"><span>Desconto${order.coupon_code ? ` (${escapeHtml(order.coupon_code)})` : ""}</span><span>-${formatPrice(Number(order.discount))}</span></div>`
+            : ""
+        }
+        ${
+          order.delivery_fee && Number(order.delivery_fee) > 0
+            ? `<div class="sub"><span>Frete</span><span>${formatPrice(Number(order.delivery_fee))}</span></div>`
+            : ""
+        }
         <div class="total"><span>Total</span><span>${formatPrice(order.total)}</span></div>
+
+        ${
+          order.notes && order.notes.trim()
+            ? `<hr><div class="obs-title">OBSERVAÇÕES</div><div class="obs">${escapeHtml(order.notes)}</div>`
+            : ""
+        }
 
         <hr>
       </body>

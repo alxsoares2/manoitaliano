@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 import { MenuItemRecord } from "@/types/menuItem";
+import { SimpleItem } from "@/types/menu";
+import { toMenuItem } from "@/lib/menuItems";
 import { formatPrice } from "@/lib/format";
+import SimpleItemModal from "./SimpleItemModal";
 
 export default function CartCrossSell() {
   const { addItem } = useCart();
   const [drinks, setDrinks] = useState<MenuItemRecord[]>([]);
   const [nutella, setNutella] = useState<MenuItemRecord | null>(null);
+  const [optionItem, setOptionItem] = useState<SimpleItem | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -39,8 +43,14 @@ export default function CartCrossSell() {
     };
   }, []);
 
-  const add = (item: MenuItemRecord) =>
+  const add = (item: MenuItemRecord) => {
+    // Se a bebida tem sabores/opções, abre o modal para o cliente escolher.
+    if (item.options && item.options.length > 0) {
+      setOptionItem(toMenuItem(item) as SimpleItem);
+      return;
+    }
     addItem({ itemId: item.id, name: item.name, unitPrice: item.price ?? 0 });
+  };
 
   if (drinks.length === 0 && !nutella) return null;
 
@@ -89,6 +99,10 @@ export default function CartCrossSell() {
             </button>
           </div>
         </div>
+      )}
+
+      {optionItem && (
+        <SimpleItemModal item={optionItem} onClose={() => setOptionItem(null)} />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ export type CustomerDetails = {
   neighborhood: string;
   complement: string;
   reference: string;
+  notes: string;
 };
 
 export const emptyCustomerDetails: CustomerDetails = {
@@ -18,4 +19,5 @@ export const emptyCustomerDetails: CustomerDetails = {
   neighborhood: "",
   complement: "",
   reference: "",
+  notes: "",
 };

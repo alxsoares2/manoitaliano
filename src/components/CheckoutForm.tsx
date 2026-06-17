@@ -273,6 +273,18 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
             className={inputClass()}
           />
         </div>
+
+        {/* Observações */}
+        <div>
+          <label className={labelClass}>Observações (opcional)</label>
+          <textarea
+            value={details.notes}
+            onChange={(e) => update("notes", e.target.value)}
+            placeholder="Ex.: sem cebola, troco para R$50, interfone com defeito..."
+            rows={3}
+            className={`${inputClass()} resize-none`}
+          />
+        </div>
       </div>
 
       <div className="border-t border-border px-5 py-4">

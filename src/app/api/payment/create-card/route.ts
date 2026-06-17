@@ -73,6 +73,7 @@ export async function POST(request: Request) {
         complement: customer.complement || null,
         reference: customer.reference || null,
         cep: customer.cep || null,
+        notes: customer.notes || null,
         items,
         subtotal,
         discount,

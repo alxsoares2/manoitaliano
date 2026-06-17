@@ -78,6 +78,12 @@ export default function OrderCard({
         ))}
       </ul>
 
+      {order.notes && order.notes.trim() && (
+        <div className="mt-3 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+          <span className="font-semibold">Obs.:</span> {order.notes}
+        </div>
+      )}
+
       <div className="mt-3 border-t border-border pt-3">
         <span className="text-lg font-semibold text-foreground">
           {formatPrice(order.total)}
