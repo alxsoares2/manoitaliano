@@ -6,7 +6,7 @@ const EXPIRY_SECONDS = 30 * 60;
 
 function pad(n: number) { return n.toString().padStart(2, "0"); }
 
-export default function PixDisplay({ qrCode, qrCodeBase64, onClose }: { qrCode: string; qrCodeBase64: string; onClose: () => void }) {
+export default function PixDisplay({ qrCode, qrCodeBase64, confirmed = false, onClose }: { qrCode: string; qrCodeBase64: string; confirmed?: boolean; onClose: () => void }) {
   const [seconds, setSeconds] = useState(EXPIRY_SECONDS);
   const [copied, setCopied] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -40,7 +40,15 @@ export default function PixDisplay({ qrCode, qrCodeBase64, onClose }: { qrCode: 
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-start gap-5 overflow-y-auto px-5 py-6">
-        {expired ? (
+        {confirmed ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-gold-soft bg-gold-soft/10 text-4xl">
+              ✅
+            </div>
+            <p className="font-display text-2xl font-semibold text-gold-soft">Pagamento confirmado!</p>
+            <p className="text-sm text-muted">Seu pedido foi enviado para a cozinha. 🍕</p>
+          </div>
+        ) : expired ? (
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">⏰</span>
             <p className="font-semibold text-foreground">PIX expirado</p>
@@ -56,6 +64,14 @@ export default function PixDisplay({ qrCode, qrCodeBase64, onClose }: { qrCode: 
           <>
             <div className={`text-center text-2xl font-bold tabular-nums ${urgency ? "text-red-500" : "text-gold-soft"}`}>
               ⏱ {pad(minutes)}:{pad(secs)}
+            </div>
+
+            <div className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-1.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-soft opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-gold-soft" />
+              </span>
+              <span className="text-xs font-semibold text-muted">Aguardando pagamento...</span>
             </div>
 
             {qrCodeBase64 && (

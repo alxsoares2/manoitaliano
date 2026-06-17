@@ -18,6 +18,7 @@ export default function CartSidebar() {
   const [step, setStep] = useState<Step>("cart");
   const [orderDetails, setOrderDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [pixData, setPixData] = useState<PixData | null>(null);
+  const [pixConfirmed, setPixConfirmed] = useState(false);
 
   // Limpa o carrinho e mostra sucesso SOMENTE quando o PIX é confirmado pelo
   // webhook (status sai de "pendente"). Se o cliente fechar sem pagar, o
@@ -34,7 +35,9 @@ export default function CartSidebar() {
           const status = (payload.new as { status?: string }).status;
           if (status && status !== "pendente" && status !== "cancelado") {
             clearCart();
-            setStep("success");
+            setPixConfirmed(true);
+            // Mostra "Pagamento confirmado!" por um instante antes do sucesso.
+            setTimeout(() => setStep("success"), 2500);
           }
         }
       )
@@ -52,6 +55,7 @@ export default function CartSidebar() {
     if (step === "success" || step === "pix") {
       setStep("cart");
       setPixData(null);
+      setPixConfirmed(false);
     }
   };
 
@@ -63,6 +67,7 @@ export default function CartSidebar() {
   const handlePixCreated = (data: PixData) => {
     // Não limpa o carrinho aqui — só após a confirmação do pagamento (webhook).
     setPixData(data);
+    setPixConfirmed(false);
     setStep("pix");
   };
 
@@ -82,7 +87,7 @@ export default function CartSidebar() {
 
   if (step === "checkout") return sidebar(<CheckoutForm onBack={() => setStep("cart")} onSubmit={handleCheckoutSubmit} />);
   if (step === "payment") return sidebar(<PaymentStep customer={orderDetails} items={items} total={totalPrice} onBack={() => setStep("checkout")} onPixCreated={handlePixCreated} onCardSuccess={handleCardSuccess} />);
-  if (step === "pix" && pixData) return sidebar(<PixDisplay qrCode={pixData.qrCode} qrCodeBase64={pixData.qrCodeBase64} onClose={handleClose} />);
+  if (step === "pix" && pixData) return sidebar(<PixDisplay qrCode={pixData.qrCode} qrCodeBase64={pixData.qrCodeBase64} confirmed={pixConfirmed} onClose={handleClose} />);
   if (step === "success") return sidebar(<OrderSuccess details={orderDetails} onClose={handleClose} />);
 
   return (
