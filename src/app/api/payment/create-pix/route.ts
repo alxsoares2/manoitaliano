@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       coupon_code: appliedCoupon,
       total: finalTotal,
       status: "pendente",
+      payment_method: "pix",
     })
     .select("id")
     .single();

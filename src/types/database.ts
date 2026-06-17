@@ -29,6 +29,11 @@ export type OrderRecord = {
   items: OrderItemRecord[];
   total: number;
   status: OrderStatus;
+  payment_method?: "pix" | "card" | null;
+  subtotal?: number | null;
+  discount?: number | null;
+  coupon_code?: string | null;
+  cep?: string | null;
 };
 
 export type OrderInsert = Omit<OrderRecord, "id" | "created_at" | "status"> & {

@@ -22,6 +22,19 @@ export function nextStatus(status: OrderStatus): OrderStatus | null {
   return STATUS_FLOW[index + 1];
 }
 
+// Etapas exibidas na linha do tempo de acompanhamento do cliente
+export const TRACKING_STEPS: { status: OrderStatus; label: string; icon: string }[] = [
+  { status: "recebido", label: "Pedido recebido", icon: "✅" },
+  { status: "em_preparo", label: "Preparando", icon: "🍕" },
+  { status: "saiu_para_entrega", label: "Saiu para entrega", icon: "🛵" },
+  { status: "entregue", label: "Entregue", icon: "🏠" },
+];
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  pix: "PIX",
+  card: "Cartão de crédito",
+};
+
 export const STATUS_COLORS: Record<OrderStatus, string> = {
   pendente: "border-yellow-200 bg-yellow-50 text-yellow-700",
   recebido: "border-blue-200 bg-blue-50 text-blue-700",

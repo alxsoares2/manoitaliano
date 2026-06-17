@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
+import { sendWhatsappText, buildOrderConfirmationMessage } from "@/lib/zapi";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -28,12 +29,21 @@ export async function POST(request: Request) {
       .update({ status: "recebido" })
       .eq("id", orderId)
       .eq("status", "pendente")
-      .select("coupon_code");
+      .select("coupon_code, customer_name, customer_phone, total");
 
-    // Conta o uso do cupom só quando o PIX é efetivamente confirmado
     const confirmed = updated?.[0];
-    if (confirmed?.coupon_code) {
-      await supabase.rpc("increment_coupon_use", { p_code: confirmed.coupon_code });
+
+    if (confirmed) {
+      // Conta o uso do cupom só quando o PIX é efetivamente confirmado
+      if (confirmed.coupon_code) {
+        await supabase.rpc("increment_coupon_use", { p_code: confirmed.coupon_code });
+      }
+
+      // Confirmação por WhatsApp com link de acompanhamento em tempo real
+      sendWhatsappText(
+        confirmed.customer_phone,
+        buildOrderConfirmationMessage(confirmed.customer_name, orderId, Number(confirmed.total))
+      ).catch(() => {});
     }
 
     return NextResponse.json({ received: true });

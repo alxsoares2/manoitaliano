@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { upsertCustomer } from "@/lib/upsertCustomer";
 import { validateCoupon } from "@/lib/coupons";
+import { sendWhatsappText, buildOrderConfirmationMessage } from "@/lib/zapi";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         coupon_code: appliedCoupon,
         total: finalTotal,
         status: "recebido",
+        payment_method: "card",
         payment_id: String(mpPayment.id),
       })
       .select("id")
@@ -89,6 +91,12 @@ export async function POST(request: Request) {
     }
 
     await upsertCustomer(customer);
+
+    // Confirmação por WhatsApp com link de acompanhamento em tempo real
+    sendWhatsappText(
+      customer.phone,
+      buildOrderConfirmationMessage(customer.name, order.id, finalTotal)
+    ).catch(() => {});
 
     return NextResponse.json({ success: true, orderId: order.id });
   } catch (err: unknown) {
