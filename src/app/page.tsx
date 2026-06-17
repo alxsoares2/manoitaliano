@@ -72,10 +72,16 @@ export default function Home() {
           <span className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
             Basílico Pizzas
           </span>
-          <h1 className="font-display text-4xl font-bold text-white sm:text-6xl">
-            Peça Agora! 🍕
+          <h1
+            className="text-4xl font-bold text-white sm:text-6xl"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Peça Agora!
           </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-white/70 sm:text-lg">
+          <p
+            className="mt-4 max-w-md text-base leading-relaxed text-white/70 sm:text-lg"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
             Pizza artesanal direto da nossa cozinha
           </p>
           <a
