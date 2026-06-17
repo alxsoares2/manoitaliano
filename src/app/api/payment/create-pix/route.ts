@@ -2,15 +2,32 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { upsertCustomer } from "@/lib/upsertCustomer";
+import { validateCoupon } from "@/lib/coupons";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
 
 export async function POST(request: Request) {
-  const { customer, items, total } = await request.json();
+  const { customer, items, total, couponCode } = await request.json();
 
   if (!customer || !items || !total) {
     return NextResponse.json({ error: "Dados do pedido incompletos." }, { status: 400 });
+  }
+
+  // Revalida o cupom server-side e recalcula o desconto
+  const subtotal = total;
+  let discount = 0;
+  let appliedCoupon: string | null = null;
+  let finalTotal = subtotal;
+
+  if (couponCode) {
+    const result = await validateCoupon(supabase, couponCode, customer.phone, subtotal);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+    discount = result.discount;
+    finalTotal = result.finalTotal;
+    appliedCoupon = result.coupon.code;
   }
 
   // 1. Insert order as "pendente" first to get its ID
@@ -26,7 +43,10 @@ export async function POST(request: Request) {
       reference: customer.reference || null,
       cep: customer.cep || null,
       items,
-      total,
+      subtotal,
+      discount,
+      coupon_code: appliedCoupon,
+      total: finalTotal,
       status: "pendente",
     })
     .select("id")
@@ -44,7 +64,7 @@ export async function POST(request: Request) {
   try {
     const mpPayment = await payment.create({
       body: {
-        transaction_amount: total,
+        transaction_amount: finalTotal,
         payment_method_id: "pix",
         description: "Pedido Basílico Pizzas",
         external_reference: order.id,

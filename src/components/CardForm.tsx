@@ -37,13 +37,16 @@ const inputClass =
 const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-widest text-muted";
 
 export default function CardForm({
-  customer, items, total, onSuccess,
+  customer, items, total, displayTotal, couponCode, onSuccess,
 }: {
   customer: CustomerDetails;
   items: object[];
   total: number;
+  displayTotal?: number;
+  couponCode?: string | null;
   onSuccess: () => void;
 }) {
+  const chargeTotal = displayTotal ?? total;
   const [card, setCard] = useState<CardData>({
     cardNumber: "", cardHolder: customer.name, expiryMonth: "", expiryYear: "", cvv: "", cpf: "",
   });
@@ -96,7 +99,7 @@ export default function CardForm({
       const res = await fetch("/api/payment/create-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer, items, total, cardToken: token.id, paymentMethodId: token.payment_method_id, issuer: token.issuer_id, cpf: card.cpf }),
+        body: JSON.stringify({ customer, items, total, couponCode: couponCode ?? null, cardToken: token.id, paymentMethodId: token.payment_method_id, issuer: token.issuer_id, cpf: card.cpf }),
       });
 
       const data = await res.json();
@@ -154,7 +157,7 @@ export default function CardForm({
           disabled={loading || !sdkReady}
           className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Processando..." : `Pagar ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}`}
+          {loading ? "Processando..." : `Pagar ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(chargeTotal)}`}
         </button>
       </form>
     </>

@@ -23,11 +23,18 @@ export async function POST(request: Request) {
     const orderId = mpPayment.external_reference;
     if (!orderId) return NextResponse.json({ received: true });
 
-    await supabase
+    const { data: updated } = await supabase
       .from("orders")
       .update({ status: "recebido" })
       .eq("id", orderId)
-      .eq("status", "pendente");
+      .eq("status", "pendente")
+      .select("coupon_code");
+
+    // Conta o uso do cupom só quando o PIX é efetivamente confirmado
+    const confirmed = updated?.[0];
+    if (confirmed?.coupon_code) {
+      await supabase.rpc("increment_coupon_use", { p_code: confirmed.coupon_code });
+    }
 
     return NextResponse.json({ received: true });
   } catch (err) {

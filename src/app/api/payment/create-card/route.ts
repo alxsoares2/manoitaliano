@@ -2,22 +2,39 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { upsertCustomer } from "@/lib/upsertCustomer";
+import { validateCoupon } from "@/lib/coupons";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
 
 export async function POST(request: Request) {
-  const { customer, items, total, cardToken, paymentMethodId, issuer, installments, cpf } =
+  const { customer, items, total, cardToken, paymentMethodId, issuer, installments, cpf, couponCode } =
     await request.json();
 
   if (!customer || !items || !total || !cardToken) {
     return NextResponse.json({ error: "Dados de pagamento incompletos." }, { status: 400 });
   }
 
+  // Revalida o cupom server-side e recalcula o desconto
+  const subtotal = total;
+  let discount = 0;
+  let appliedCoupon: string | null = null;
+  let finalTotal = subtotal;
+
+  if (couponCode) {
+    const result = await validateCoupon(supabase, couponCode, customer.phone, subtotal);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+    discount = result.discount;
+    finalTotal = result.finalTotal;
+    appliedCoupon = result.coupon.code;
+  }
+
   try {
     const mpPayment = await payment.create({
       body: {
-        transaction_amount: total,
+        transaction_amount: finalTotal,
         token: cardToken,
         payment_method_id: paymentMethodId,
         issuer_id: issuer,
@@ -53,7 +70,10 @@ export async function POST(request: Request) {
         reference: customer.reference || null,
         cep: customer.cep || null,
         items,
-        total,
+        subtotal,
+        discount,
+        coupon_code: appliedCoupon,
+        total: finalTotal,
         status: "recebido",
         payment_id: String(mpPayment.id),
       })
@@ -62,6 +82,10 @@ export async function POST(request: Request) {
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Pagamento aprovado, mas erro ao criar pedido. Contate-nos." }, { status: 500 });
+    }
+
+    if (appliedCoupon) {
+      await supabase.rpc("increment_coupon_use", { p_code: appliedCoupon });
     }
 
     await upsertCustomer(customer);

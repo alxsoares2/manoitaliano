@@ -29,10 +29,48 @@ export default function PaymentStep({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cupom
+  const [couponInput, setCouponInput] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
+
+  const finalTotal = applied ? Math.max(0, total - applied.discount) : total;
+
   const orderItems = items.map((item) => ({
     name: item.name, size: item.size, borda: item.borda, option: item.option,
     qty: item.qty, unitPrice: item.unitPrice, bordaPrice: item.bordaPrice,
   }));
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput, phone: customer.phone, subtotal: total }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setApplied(null);
+        setCouponError(data.error ?? "Cupom inválido.");
+        return;
+      }
+      setApplied({ code: data.code, discount: data.discount });
+    } catch {
+      setCouponError("Erro ao validar cupom. Tente novamente.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setApplied(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
 
   const handlePix = async () => {
     setLoading(true);
@@ -41,7 +79,7 @@ export default function PaymentStep({
       const res = await fetch("/api/payment/create-pix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer, items: orderItems, total }),
+        body: JSON.stringify({ customer, items: orderItems, total, couponCode: applied?.code ?? null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar PIX.");
@@ -66,10 +104,64 @@ export default function PaymentStep({
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <p className="mb-5 text-sm text-muted">
-          Escolha a forma de pagamento para o pedido de{" "}
-          <span className="font-semibold text-foreground">{formatPrice(total)}</span>:
-        </p>
+        {/* Cupom */}
+        <div className="mb-5">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted">
+            Tem cupom?
+          </label>
+          {applied ? (
+            <div className="flex items-center justify-between rounded-lg border border-gold-soft/40 bg-gold-soft/5 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-gold-soft">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-semibold text-foreground">{applied.code}</span>
+                <span className="text-muted">−{formatPrice(applied.discount)}</span>
+              </div>
+              <button onClick={removeCoupon} className="text-xs text-muted underline transition hover:text-red-500">
+                Remover
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponInput}
+                onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                placeholder="Digite o código"
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 outline-none transition focus:border-foreground"
+              />
+              <button
+                onClick={handleApplyCoupon}
+                disabled={couponLoading || !couponInput.trim()}
+                className="shrink-0 rounded-lg border border-foreground px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {couponLoading ? "..." : "Aplicar"}
+              </button>
+            </div>
+          )}
+          {couponError && <p className="mt-1.5 text-xs text-red-500">{couponError}</p>}
+        </div>
+
+        {/* Resumo */}
+        <div className="mb-5 space-y-1.5 rounded-xl border border-border bg-background p-4 text-sm">
+          <div className="flex justify-between text-muted">
+            <span>Subtotal</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+          {applied && (
+            <div className="flex justify-between text-gold-soft">
+              <span>Desconto ({applied.code})</span>
+              <span>−{formatPrice(applied.discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground">
+            <span>Total</span>
+            <span>{formatPrice(finalTotal)}</span>
+          </div>
+        </div>
+
+        <p className="mb-3 text-sm text-muted">Escolha a forma de pagamento:</p>
 
         <div className="grid grid-cols-2 gap-3">
           {/* PIX */}
@@ -118,16 +210,17 @@ export default function PaymentStep({
             <button
               onClick={handlePix}
               disabled={loading}
-              className="mt-4 w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 flex w-full items-center justify-between rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Gerando PIX..." : "Gerar QR Code PIX"}
+              <span>{loading ? "Gerando PIX..." : "Gerar QR Code PIX"}</span>
+              {!loading && <span>{formatPrice(finalTotal)}</span>}
             </button>
           </div>
         )}
 
         {method === "card" && (
           <div className="mt-6">
-            <CardForm customer={customer} items={orderItems} total={total} onSuccess={onCardSuccess} />
+            <CardForm customer={customer} items={orderItems} total={total} displayTotal={finalTotal} couponCode={applied?.code ?? null} onSuccess={onCardSuccess} />
           </div>
         )}
       </div>
