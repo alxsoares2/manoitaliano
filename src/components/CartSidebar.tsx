@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
 import CheckoutForm from "./CheckoutForm";
 import OrderSuccess from "./OrderSuccess";
@@ -17,6 +18,32 @@ export default function CartSidebar() {
   const [step, setStep] = useState<Step>("cart");
   const [orderDetails, setOrderDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const [pixData, setPixData] = useState<PixData | null>(null);
+
+  // Limpa o carrinho e mostra sucesso SOMENTE quando o PIX é confirmado pelo
+  // webhook (status sai de "pendente"). Se o cliente fechar sem pagar, o
+  // carrinho permanece intacto (persistido em localStorage).
+  useEffect(() => {
+    if (step !== "pix" || !pixData) return;
+
+    const channel = supabase
+      .channel(`pix-confirm-${pixData.orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${pixData.orderId}` },
+        (payload) => {
+          const status = (payload.new as { status?: string }).status;
+          if (status && status !== "pendente" && status !== "cancelado") {
+            clearCart();
+            setStep("success");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [step, pixData, clearCart]);
 
   if (!isOpen) return null;
 
@@ -34,8 +61,8 @@ export default function CartSidebar() {
   };
 
   const handlePixCreated = (data: PixData) => {
+    // Não limpa o carrinho aqui — só após a confirmação do pagamento (webhook).
     setPixData(data);
-    clearCart();
     setStep("pix");
   };
 
