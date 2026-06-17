@@ -49,6 +49,7 @@ export default function Home() {
   }, []);
 
   const menu = groupActiveItemsByCategory(items);
+  const allPizzas = menu.flatMap((c) => c.items.filter((i) => i.kind === "pizza")) as import("@/types/menu").PizzaItem[];
 
   return (
     <>
@@ -86,7 +87,7 @@ export default function Home() {
                     item={item}
                     siblingPizzas={
                       item.kind === "pizza"
-                        ? (category.items.filter((i) => i.kind === "pizza" && i.id !== item.id) as import("@/types/menu").PizzaItem[])
+                        ? allPizzas.filter((p) => p.id !== item.id)
                         : []
                     }
                   />
