@@ -8,11 +8,13 @@ export default function MenuItemAdminCard({
   item,
   onToggleActive,
   onEdit,
+  onDelete,
   onImageUploaded,
 }: {
   item: MenuItemRecord;
   onToggleActive: (item: MenuItemRecord) => void;
   onEdit: (item: MenuItemRecord) => void;
+  onDelete: (item: MenuItemRecord) => void;
   onImageUploaded?: (itemId: string, url: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -104,6 +106,15 @@ export default function MenuItemAdminCard({
               className="rounded-full border border-border bg-background px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted transition hover:border-gold hover:text-gold"
             >
               Editar
+            </button>
+            <button
+              onClick={() => onDelete(item)}
+              className="rounded-full border border-border bg-background p-1.5 text-muted transition hover:border-red-400 hover:text-red-500"
+              aria-label="Excluir item"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+              </svg>
             </button>
           </div>
         </div>

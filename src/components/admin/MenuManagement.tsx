@@ -10,9 +10,9 @@ import MenuItemModal from "./MenuItemModal";
 export default function MenuManagement() {
   const [items, setItems] = useState<MenuItemRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingItem, setEditingItem] = useState<MenuItemRecord | null | undefined>(
-    undefined
-  );
+  const [editingItem, setEditingItem] = useState<MenuItemRecord | null | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<MenuItemRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -44,6 +44,15 @@ export default function MenuManagement() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await supabase.from("menu_items").delete().eq("id", deleteTarget.id);
+    setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    setDeleting(false);
+  };
 
   const handleToggleActive = async (item: MenuItemRecord) => {
     const is_active = !item.is_active;
@@ -84,6 +93,7 @@ export default function MenuManagement() {
                   item={item}
                   onToggleActive={handleToggleActive}
                   onEdit={setEditingItem}
+                  onDelete={setDeleteTarget}
                   onImageUploaded={(id, url) =>
                     setItems((prev) => prev.map((i) => i.id === id ? { ...i, image_url: url } : i))
                   }
@@ -96,6 +106,32 @@ export default function MenuManagement() {
 
       {editingItem !== undefined && (
         <MenuItemModal item={editingItem} onClose={() => setEditingItem(undefined)} />
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-background-elevated p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-semibold text-foreground">Excluir item?</h3>
+            <p className="mb-5 text-sm text-muted">
+              Tem certeza que deseja excluir <span className="font-medium text-foreground">{deleteTarget.name}</span>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-muted transition hover:border-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

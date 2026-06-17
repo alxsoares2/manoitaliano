@@ -6,27 +6,43 @@ import { bordaGroups } from "@/data/menu";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 
-export default function PizzaModal({ pizza, onClose }: { pizza: PizzaItem; onClose: () => void }) {
+export default function PizzaModal({
+  pizza,
+  siblingPizzas = [],
+  onClose,
+}: {
+  pizza: PizzaItem;
+  siblingPizzas?: PizzaItem[];
+  onClose: () => void;
+}) {
   const { addItem } = useCart();
   const [size, setSize] = useState<"media" | "grande">("media");
   const [bordaKey, setBordaKey] = useState<string>("none");
+  const [secondId, setSecondId] = useState<string>("none");
 
-  const sizePrice = pizza.prices[size];
   const sizeLabel = size === "media" ? "Média" : "Grande";
+  const price1 = pizza.prices[size];
+  const secondPizza = siblingPizzas.find((p) => p.id === secondId) ?? null;
+  const price2 = secondPizza ? secondPizza.prices[size] : 0;
 
   const bordaOptions = bordaGroups.flatMap((group) =>
     group.options.map((opt) => ({ key: `${group.id}::${opt}`, label: opt, price: group.price }))
   );
-
   const selectedBorda = bordaKey === "none" ? null : bordaOptions.find((b) => b.key === bordaKey) ?? null;
-  const total = sizePrice + (selectedBorda?.price ?? 0);
+
+  const basePrice = secondPizza ? (price1 + price2) / 2 : price1;
+  const total = basePrice + (selectedBorda?.price ?? 0);
+
+  const itemName = secondPizza
+    ? `${pizza.name} / ${secondPizza.name}`
+    : pizza.name;
 
   const handleAdd = () => {
     addItem({
-      itemId: pizza.id,
-      name: pizza.name,
+      itemId: secondPizza ? `${pizza.id}+${secondPizza.id}` : pizza.id,
+      name: itemName,
       size: sizeLabel,
-      unitPrice: sizePrice,
+      unitPrice: basePrice,
       borda: selectedBorda?.label,
       bordaPrice: selectedBorda?.price,
     });
@@ -67,9 +83,7 @@ export default function PizzaModal({ pizza, onClose }: { pizza: PizzaItem; onClo
                 key={s}
                 onClick={() => setSize(s)}
                 className={`rounded-xl border px-4 py-3 text-left transition ${
-                  size === s
-                    ? "border-foreground bg-foreground/5"
-                    : "border-border hover:border-foreground/40"
+                  size === s ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/40"
                 }`}
               >
                 <div className="font-medium text-foreground">{s === "media" ? "Média" : "Grande"}</div>
@@ -78,6 +92,36 @@ export default function PizzaModal({ pizza, onClose }: { pizza: PizzaItem; onClo
             ))}
           </div>
         </div>
+
+        {/* Segundo sabor */}
+        {siblingPizzas.length > 0 && (
+          <div className="mb-5">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              Segundo sabor (opcional)
+            </h3>
+            <p className="mb-3 text-xs text-muted">
+              Escolha outro sabor para dividir a pizza. O preço será a média dos dois sabores.
+            </p>
+            <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${secondId === "none" ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/40"}`}>
+                <input type="radio" name="second" className="accent-foreground" checked={secondId === "none"} onChange={() => setSecondId("none")} />
+                <span className="text-foreground">Apenas {pizza.name}</span>
+              </label>
+              {siblingPizzas.map((p) => (
+                <label
+                  key={p.id}
+                  className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${secondId === p.id ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/40"}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <input type="radio" name="second" className="accent-foreground" checked={secondId === p.id} onChange={() => setSecondId(p.id)} />
+                    <span className="text-foreground">{p.name}</span>
+                  </span>
+                  <span className="text-muted">{formatPrice((price1 + p.prices[size]) / 2)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Borda */}
         <div className="mb-6">
@@ -113,6 +157,14 @@ export default function PizzaModal({ pizza, onClose }: { pizza: PizzaItem; onClo
             ))}
           </div>
         </div>
+
+        {/* Resumo e botão */}
+        {secondPizza && (
+          <div className="mb-3 rounded-lg bg-background px-4 py-2.5 text-sm">
+            <span className="text-muted">Pizza: </span>
+            <span className="font-medium text-foreground">{pizza.name} / {secondPizza.name} — {sizeLabel}</span>
+          </div>
+        )}
 
         <button
           onClick={handleAdd}

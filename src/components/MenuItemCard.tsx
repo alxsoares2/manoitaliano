@@ -29,7 +29,13 @@ function ItemImage({ url, name }: { url?: string | null; name: string }) {
   );
 }
 
-export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem }) {
+export default function MenuItemCard({
+  item,
+  siblingPizzas = [],
+}: {
+  item: PizzaItem | SimpleItem;
+  siblingPizzas?: PizzaItem[];
+}) {
   const { addItem } = useCart();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -52,7 +58,13 @@ export default function MenuItemCard({ item }: { item: PizzaItem | SimpleItem })
             Escolher tamanho →
           </span>
         </button>
-        {modalOpen && <PizzaModal pizza={item} onClose={() => setModalOpen(false)} />}
+        {modalOpen && (
+          <PizzaModal
+            pizza={item}
+            siblingPizzas={siblingPizzas}
+            onClose={() => setModalOpen(false)}
+          />
+        )}
       </>
     );
   }

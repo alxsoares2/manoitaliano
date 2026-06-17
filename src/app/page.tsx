@@ -81,7 +81,15 @@ export default function Home() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {category.items.map((item) => (
-                  <MenuItemCard key={item.id} item={item} />
+                  <MenuItemCard
+                    key={item.id}
+                    item={item}
+                    siblingPizzas={
+                      item.kind === "pizza"
+                        ? (category.items.filter((i) => i.kind === "pizza" && i.id !== item.id) as import("@/types/menu").PizzaItem[])
+                        : []
+                    }
+                  />
                 ))}
               </div>
             </section>
