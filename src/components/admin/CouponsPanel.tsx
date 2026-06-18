@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { CouponRecord } from "@/types/coupon";
 import { formatPrice } from "@/lib/format";
+import { printCoupon } from "@/lib/printCoupon";
 
 const emptyForm = {
   code: "",
@@ -156,15 +157,29 @@ export default function CouponsPanel() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => setDeleteTarget(c)}
-                      className="rounded-lg p-1.5 text-muted transition hover:bg-red-50 hover:text-red-500"
-                      aria-label="Excluir cupom"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => printCoupon(c)}
+                        className="rounded-lg p-1.5 text-muted transition hover:bg-gold/10 hover:text-gold"
+                        aria-label="Imprimir cupom"
+                        title="Imprimir cupom"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                          <rect x="6" y="14" width="12" height="8" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(c)}
+                        className="rounded-lg p-1.5 text-muted transition hover:bg-red-50 hover:text-red-500"
+                        aria-label="Excluir cupom"
+                        title="Excluir cupom"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
