@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Zone = {
   id: string;
@@ -72,7 +73,7 @@ function ZoneModal({
   const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--admin-muted)]";
   const inputClass = "w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-sm text-[var(--admin-fg)] outline-none focus:border-[var(--admin-gold)]";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-2xl bg-[var(--admin-bg)] p-6 shadow-2xl">
         <h2 className="mb-5 text-lg font-bold text-[var(--admin-fg)]">
@@ -135,7 +136,8 @@ function ZoneModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -253,7 +255,7 @@ export default function DeliveryZonesPanel() {
         <ZoneModal state={modal} onClose={() => setModal(null)} onSaved={fetchZones} />
       )}
 
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-[var(--admin-bg)] p-6 shadow-2xl">
             <h2 className="mb-2 text-lg font-bold text-[var(--admin-fg)]">Confirmar exclusão</h2>
@@ -275,7 +277,8 @@ export default function DeliveryZonesPanel() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
