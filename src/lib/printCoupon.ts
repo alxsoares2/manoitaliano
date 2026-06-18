@@ -1,4 +1,3 @@
-import QRCode from "qrcode";
 import { CouponRecord } from "@/types/coupon";
 
 export async function printCoupon(coupon: CouponRecord) {
@@ -15,12 +14,10 @@ export async function printCoupon(coupon: CouponRecord) {
     ? `Valido ${coupon.max_uses_per_customer}x por cliente`
     : "Uso ilimitado";
 
-  // Gera o QR como data URL ANTES de abrir a janela — sem depender de CDN
-  const qrDataUrl = await QRCode.toDataURL("https://basilicopizzas.com.br", {
-    width: 200,
-    margin: 1,
-    color: { dark: "#000000", light: "#ffffff" },
-  });
+  // Gera o QR server-side via API route (qrcode é pacote Node.js)
+  const res = await fetch("/api/admin/qr?url=https%3A%2F%2Fbasilicopizzas.com.br");
+  const { dataUrl: qrDataUrl } = await res.json();
+  console.log("[printCoupon] QR data URL gerado, length:", qrDataUrl?.length, "prefix:", qrDataUrl?.slice(0, 40));
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
