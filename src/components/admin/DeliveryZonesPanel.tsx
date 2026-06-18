@@ -48,35 +48,39 @@ function AddModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => vo
     onClose();
   };
 
-  const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--admin-muted)]";
-  const inputClass = "w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-sm text-[var(--admin-fg)] outline-none focus:border-[var(--admin-gold)]";
+  const s = {
+    bg: { background: "#1e1e1e", color: "#f0f0f0" },
+    label: { display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: "#888", marginBottom: 4 },
+    input: { width: "100%", borderRadius: 8, border: "1px solid #333", background: "#2a2a2a", padding: "8px 12px", fontSize: 14, color: "#f0f0f0", outline: "none" },
+    hint: { marginTop: 4, fontSize: 11, color: "#888" },
+    btnCancel: { flex: 1, borderRadius: 8, border: "1px solid #333", padding: "8px 0", fontSize: 14, color: "#aaa", background: "transparent", cursor: "pointer" },
+    btnSave: { flex: 1, borderRadius: 8, border: "none", padding: "8px 0", fontSize: 14, fontWeight: 600, color: "#fff", background: "#C9A84C", cursor: "pointer" },
+  };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-[var(--admin-bg)] p-6 shadow-2xl">
-        <h2 className="mb-5 text-lg font-bold text-[var(--admin-fg)]">Adicionar Bairro</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.65)", padding: 16 }}>
+      <div style={{ width: "100%", maxWidth: 440, borderRadius: 20, padding: 24, boxShadow: "0 25px 50px rgba(0,0,0,0.5)", ...s.bg }}>
+        <h2 style={{ marginBottom: 20, fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>Adicionar Bairro</h2>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <label className={labelClass}>Bairro</label>
-            <input className={inputClass} value={form.neighborhood} onChange={(e) => setForm((f) => ({ ...f, neighborhood: e.target.value }))} placeholder="Nome do bairro" />
+            <label style={s.label}>Bairro</label>
+            <input style={s.input} value={form.neighborhood} onChange={(e) => setForm((f) => ({ ...f, neighborhood: e.target.value }))} placeholder="Nome do bairro" />
           </div>
           <div>
-            <label className={labelClass}>Frete (R$) — será arredondado para ,99</label>
-            <input className={inputClass} type="number" step="0.01" min="0" value={form.delivery_fee} onChange={(e) => setForm((f) => ({ ...f, delivery_fee: e.target.value }))} placeholder="Ex.: 12.00" />
+            <label style={s.label}>Frete (R$) — será arredondado para ,99</label>
+            <input style={s.input} type="number" step="0.01" min="0" value={form.delivery_fee} onChange={(e) => setForm((f) => ({ ...f, delivery_fee: e.target.value }))} placeholder="Ex.: 12.00" />
             {form.delivery_fee && !isNaN(parseFloat(form.delivery_fee)) && (
-              <p className="mt-1 text-xs text-[var(--admin-muted)]">
-                Será salvo como R${roundTo99(parseFloat(form.delivery_fee)).toFixed(2).replace(".", ",")}
-              </p>
+              <p style={s.hint}>Será salvo como R${roundTo99(parseFloat(form.delivery_fee)).toFixed(2).replace(".", ",")}</p>
             )}
           </div>
           <div>
-            <label className={labelClass}>Tempo estimado</label>
-            <input className={inputClass} value={form.estimated_time} onChange={(e) => setForm((f) => ({ ...f, estimated_time: e.target.value }))} placeholder="Ex.: 40-55 min" />
+            <label style={s.label}>Tempo estimado</label>
+            <input style={s.input} value={form.estimated_time} onChange={(e) => setForm((f) => ({ ...f, estimated_time: e.target.value }))} placeholder="Ex.: 40-55 min" />
           </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-[var(--admin-border)] py-2 text-sm text-[var(--admin-muted)] hover:border-[var(--admin-gold)] hover:text-[var(--admin-gold)]">Cancelar</button>
-            <button type="submit" disabled={saving} className="flex-1 rounded-lg bg-[var(--admin-gold)] py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Salvando…" : "Adicionar"}</button>
+          {error && <p style={{ fontSize: 12, color: "#f87171" }}>{error}</p>}
+          <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={s.btnCancel}>Cancelar</button>
+            <button type="submit" disabled={saving} style={{ ...s.btnSave, opacity: saving ? 0.5 : 1 }}>{saving ? "Salvando…" : "Adicionar"}</button>
           </div>
         </form>
       </div>
