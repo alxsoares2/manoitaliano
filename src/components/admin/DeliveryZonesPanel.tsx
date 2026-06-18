@@ -286,14 +286,14 @@ export default function DeliveryZonesPanel() {
       {/* Barra de salvar flutuante quando há alterações */}
       {hasDirty && createPortal(
         <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-bg)] px-5 py-3 shadow-2xl">
-            <span className="text-sm text-[var(--admin-fg)]">
-              <span className="font-semibold text-[var(--admin-gold)]">{dirtyIds.length}</span> bairro{dirtyIds.length !== 1 ? "s" : ""} com alterações
+          <div className="flex items-center gap-3 rounded-2xl px-5 py-3 shadow-2xl" style={{ background: "#1a1a1a", border: "1px solid #333" }}>
+            <span className="text-sm text-white/90">
+              <span className="font-semibold" style={{ color: "#C9A84C" }}>{dirtyIds.length}</span> bairro{dirtyIds.length !== 1 ? "s" : ""} com alterações
             </span>
-            <button onClick={discardAll} className="rounded-lg px-3 py-1.5 text-sm text-[var(--admin-muted)] hover:text-[var(--admin-fg)]">
+            <button onClick={discardAll} className="rounded-lg px-3 py-1.5 text-sm text-white/60 hover:text-white">
               Descartar
             </button>
-            <button onClick={saveAll} disabled={saving} className="rounded-lg bg-[var(--admin-gold)] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60">
+            <button onClick={saveAll} disabled={saving} className="rounded-lg px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60" style={{ background: "#C9A84C" }}>
               {saving ? "Salvando…" : "Salvar tudo"}
             </button>
           </div>
