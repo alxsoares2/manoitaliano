@@ -1,6 +1,7 @@
+import QRCode from "qrcode";
 import { CouponRecord } from "@/types/coupon";
 
-export function printCoupon(coupon: CouponRecord) {
+export async function printCoupon(coupon: CouponRecord) {
   const isPercent = coupon.type === "percent";
   const benefitText = isPercent
     ? `${coupon.value}% DE DESCONTO`
@@ -14,12 +15,18 @@ export function printCoupon(coupon: CouponRecord) {
     ? `Valido ${coupon.max_uses_per_customer}x por cliente`
     : "Uso ilimitado";
 
+  // Gera o QR como data URL ANTES de abrir a janela — sem depender de CDN
+  const qrDataUrl = await QRCode.toDataURL("https://basilicopizzas.com.br", {
+    width: 200,
+    margin: 1,
+    color: { dark: "#000000", light: "#ffffff" },
+  });
+
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <title>Cupom ${coupon.code}</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"><\/script>
   <style>
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +40,6 @@ export function printCoupon(coupon: CouponRecord) {
       background: #fff;
       line-height: 1.45;
     }
-    .center { text-align: center; }
     .brand {
       font-size: 20px;
       font-weight: bold;
@@ -103,10 +109,15 @@ export function printCoupon(coupon: CouponRecord) {
       margin: 2mm 0;
       line-height: 1.5;
     }
-    #qrcode {
-      display: flex;
-      justify-content: center;
+    .qr-wrap {
+      text-align: center;
       margin: 3mm 0 1.5mm;
+    }
+    .qr-wrap img {
+      display: inline-block;
+      width: 200px;
+      height: 200px;
+      image-rendering: pixelated;
     }
     .qr-label {
       font-size: 11px;
@@ -114,14 +125,8 @@ export function printCoupon(coupon: CouponRecord) {
       text-align: center;
       margin-bottom: 2mm;
     }
-    .marketing {
-      font-size: 11px;
-      margin: 0;
-      padding: 0;
-    }
-    .marketing p {
-      margin: 1mm 0;
-    }
+    .marketing { font-size: 11px; }
+    .marketing p { margin: 1mm 0; }
     .marketing-title {
       font-size: 12px;
       font-weight: bold;
@@ -167,7 +172,9 @@ export function printCoupon(coupon: CouponRecord) {
 
   <hr />
 
-  <div id="qrcode"></div>
+  <div class="qr-wrap">
+    <img src="${qrDataUrl}" alt="QR Code basilicopizzas.com.br" />
+  </div>
   <p class="qr-label">Aponte a camera e peca agora!</p>
 
   <hr />
@@ -184,19 +191,7 @@ export function printCoupon(coupon: CouponRecord) {
   <hr />
 
   <script>
-    function generate() {
-      if (typeof QRCode === "undefined") { setTimeout(generate, 80); return; }
-      QRCode.toCanvas("https://basilicopizzas.com.br", {
-        width: 200,
-        margin: 1,
-        color: { dark: "#000000", light: "#ffffff" }
-      }, function(err, canvas) {
-        if (!err) document.getElementById("qrcode").appendChild(canvas);
-        window.focus();
-        window.print();
-      });
-    }
-    window.onload = generate;
+    window.onload = function() { window.focus(); window.print(); };
   <\/script>
 </body>
 </html>`;

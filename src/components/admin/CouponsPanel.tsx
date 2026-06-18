@@ -159,7 +159,7 @@ export default function CouponsPanel() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => printCoupon(c)}
+                        onClick={() => { printCoupon(c).catch(console.error); }}
                         className="rounded-lg p-1.5 text-muted transition hover:bg-gold/10 hover:text-gold"
                         aria-label="Imprimir cupom"
                         title="Imprimir cupom"
