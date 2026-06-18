@@ -11,9 +11,10 @@ import CrmPanel from "./CrmPanel";
 import AdminDashboard from "./AdminDashboard";
 import AdminReports from "./AdminReports";
 import UsersPanel from "./UsersPanel";
+import DeliveryZonesPanel from "./DeliveryZonesPanel";
 import { AdminRole } from "@/lib/adminAuth";
 
-type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios" | "usuarios";
+type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios" | "usuarios" | "zonas";
 
 type TabDef = { id: Tab; label: string; roles: AdminRole[] };
 
@@ -26,6 +27,7 @@ const TABS: TabDef[] = [
   { id: "dashboard",  label: "Dashboard",          roles: ["admin", "gerente"] },
   { id: "relatorios", label: "Relatórios",         roles: ["admin", "gerente"] },
   { id: "usuarios",   label: "Usuários",           roles: ["admin"] },
+  { id: "zonas",      label: "Zonas de Entrega",   roles: ["admin", "gerente"] },
 ];
 
 const TAB_SUBTITLES: Record<Tab, string> = {
@@ -37,6 +39,7 @@ const TAB_SUBTITLES: Record<Tab, string> = {
   dashboard:  "Métricas e desempenho em tempo real",
   relatorios: "Consulte e exporte pedidos por período",
   usuarios:   "Gerencie usuários e permissões de acesso",
+  zonas:      "Configure bairros, fretes e tempos estimados de entrega",
 };
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -108,6 +111,7 @@ export default function AdminPanel() {
       {activeTab === "dashboard"  && <AdminDashboard />}
       {activeTab === "relatorios" && <AdminReports />}
       {activeTab === "usuarios"   && <UsersPanel />}
+      {activeTab === "zonas"      && <DeliveryZonesPanel />}
     </main>
   );
 }

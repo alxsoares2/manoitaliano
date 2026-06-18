@@ -1,11 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
-import { lookupFrete } from "@/data/frete";
 import { CustomerDetails, emptyCustomerDetails } from "@/types/order";
+
+type DeliveryZone = { neighborhood: string; delivery_fee: number; estimated_time: string };
+
+function normalize(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+}
 
 type Errors = Partial<Record<keyof CustomerDetails, string>>;
 
@@ -25,10 +30,26 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
   const [welcome, setWelcome] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
 
+  // Zonas de entrega carregadas do Supabase
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const zonesRef = useRef<DeliveryZone[]>([]);
+  useEffect(() => {
+    fetch("/api/delivery-zones")
+      .then((r) => r.json())
+      .then(({ zones: z }) => { setZones(z ?? []); zonesRef.current = z ?? []; })
+      .catch(() => {});
+  }, []);
+
+  const lookupZone = useCallback((neighborhood: string): DeliveryZone | null => {
+    if (!neighborhood.trim()) return null;
+    const key = normalize(neighborhood);
+    return zones.find((z) => normalize(z.neighborhood) === key) ?? null;
+  }, [zones]);
+
   // Frete calculado pelo bairro. undefined = ainda não informado; null = fora da cobertura.
-  const deliveryFee =
-    details.neighborhood.trim() === "" ? undefined : lookupFrete(details.neighborhood);
-  const freteNotFound = details.neighborhood.trim() !== "" && deliveryFee == null;
+  const zone = details.neighborhood.trim() === "" ? undefined : lookupZone(details.neighborhood);
+  const deliveryFee = zone === undefined ? undefined : zone === null ? null : zone.delivery_fee;
+  const freteNotFound = details.neighborhood.trim() !== "" && zone === null;
   const orderTotal = totalPrice + (deliveryFee ?? 0);
 
   const update = (field: keyof CustomerDetails, value: string) => {
@@ -103,7 +124,7 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
     if (!details.address.trim()) next.address = "Informe a rua";
     if (!details.number.trim()) next.number = "Informe o número";
     if (!details.neighborhood.trim()) next.neighborhood = "Informe o bairro";
-    else if (lookupFrete(details.neighborhood) == null)
+    else if (lookupZone(details.neighborhood) == null)
       next.neighborhood = "Bairro fora da área de entrega";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -248,9 +269,9 @@ export default function CheckoutForm({ onBack, onSubmit }: { onBack: () => void;
               <span>⚠️ Bairro não encontrado. Entre em contato pelo WhatsApp para combinarmos a entrega.</span>
             </a>
           )}
-          {!errors.neighborhood && deliveryFee != null && (
+          {!errors.neighborhood && zone != null && (
             <p className="mt-1.5 text-xs text-gold-soft">
-              ✓ Entregamos no seu bairro — frete {formatPrice(deliveryFee)}
+              ✓ Entrega em {zone.neighborhood} — {formatPrice(zone.delivery_fee)} — {zone.estimated_time}
             </p>
           )}
         </div>
