@@ -178,7 +178,7 @@ export default function DeliveryZonesPanel() {
               <button onClick={discardAll} className="rounded-lg border border-[var(--admin-border)] px-4 py-2 text-sm text-[var(--admin-muted)] hover:border-[var(--admin-gold)] hover:text-[var(--admin-gold)]">
                 Descartar
               </button>
-              <button onClick={saveAll} disabled={saving} className="rounded-lg bg-[var(--admin-gold)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:opacity-90">
+              <button onClick={saveAll} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:opacity-90" style={{ background: "#C9A84C" }}>
                 {saving ? "Salvando…" : `Salvar ${dirtyIds.length > 1 ? `${dirtyIds.length} alterações` : "alteração"}`}
               </button>
             </>
