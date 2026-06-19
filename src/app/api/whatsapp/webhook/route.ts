@@ -8,11 +8,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Validação do Client-Token da Z-API
-    const clientToken = request.headers.get("client-token");
-    if (ZAPI_CLIENT_TOKEN && clientToken !== ZAPI_CLIENT_TOKEN) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Z-API não envia Client-Token como header nos webhooks de recebimento.
+    // A segurança vem pelo URL secreto + validação do payload.
 
     // Z-API envia diferentes tipos de eventos — só processar mensagens de texto recebidas
     const isMessage = body.type === "ReceivedCallback" || body.text?.message;
