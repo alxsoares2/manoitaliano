@@ -6,43 +6,34 @@ import { useAdminAuth } from "@/context/AdminAuthContext";
 import OrdersDashboard from "./OrdersDashboard";
 import MenuManagement from "./MenuManagement";
 import CustomersPanel from "./CustomersPanel";
-import CouponsPanel from "./CouponsPanel";
-import CrmPanel from "./CrmPanel";
+import CrmCuponsPanel from "./CrmCuponsPanel";
 import AdminDashboard from "./AdminDashboard";
 import AdminReports from "./AdminReports";
-import UsersPanel from "./UsersPanel";
-import DeliveryZonesPanel from "./DeliveryZonesPanel";
-import SettingsPanel from "./SettingsPanel";
+import ConfiguracoesPanel from "./ConfiguracoesPanel";
 import { AdminRole } from "@/lib/adminAuth";
 
-type Tab = "pedidos" | "cardapio" | "clientes" | "cupons" | "crm" | "dashboard" | "relatorios" | "usuarios" | "zonas" | "configuracoes";
+type Tab = "pedidos" | "cardapio" | "clientes" | "crm" | "dashboard" | "relatorios" | "configuracoes";
 
 type TabDef = { id: Tab; label: string; roles: AdminRole[] };
 
 const TABS: TabDef[] = [
-  { id: "pedidos",    label: "Pedidos",           roles: ["admin", "gerente", "operador"] },
-  { id: "cardapio",   label: "Gestão de Cardápio", roles: ["admin", "gerente"] },
-  { id: "clientes",   label: "Clientes",           roles: ["admin", "gerente"] },
-  { id: "cupons",     label: "Cupons",             roles: ["admin", "gerente"] },
-  { id: "crm",        label: "CRM",                roles: ["admin", "gerente"] },
-  { id: "dashboard",  label: "Dashboard",          roles: ["admin", "gerente"] },
-  { id: "relatorios", label: "Relatórios",         roles: ["admin", "gerente"] },
-  { id: "usuarios",   label: "Usuários",           roles: ["admin"] },
-  { id: "zonas",          label: "Zonas de Entrega",   roles: ["admin", "gerente"] },
-  { id: "configuracoes",  label: "Configurações",      roles: ["admin", "gerente"] },
+  { id: "pedidos",       label: "Pedidos",        roles: ["admin", "gerente", "operador"] },
+  { id: "cardapio",      label: "Cardápio",        roles: ["admin", "gerente"] },
+  { id: "clientes",      label: "Clientes",        roles: ["admin", "gerente"] },
+  { id: "crm",           label: "CRM",             roles: ["admin", "gerente"] },
+  { id: "dashboard",     label: "Dashboard",       roles: ["admin", "gerente"] },
+  { id: "relatorios",    label: "Relatórios",      roles: ["admin", "gerente"] },
+  { id: "configuracoes", label: "Configurações",   roles: ["admin", "gerente"] },
 ];
 
 const TAB_SUBTITLES: Record<Tab, string> = {
-  pedidos:    "Atualização em tempo real — mais recentes no topo",
-  cardapio:   "Gerencie os itens exibidos no cardápio do cliente",
-  clientes:   "Clientes ordenados por total gasto",
-  cupons:     "Crie e gerencie cupons de desconto",
-  crm:        "Dispare campanhas de WhatsApp por segmento",
-  dashboard:  "Métricas e desempenho em tempo real",
-  relatorios: "Consulte e exporte pedidos por período",
-  usuarios:      "Gerencie usuários e permissões de acesso",
-  zonas:         "Configure bairros, fretes e tempos estimados de entrega",
-  configuracoes: "Horário de funcionamento e fechamento temporário",
+  pedidos:       "Atualização em tempo real — mais recentes no topo",
+  cardapio:      "Gerencie os itens exibidos no cardápio do cliente",
+  clientes:      "Clientes ordenados por total gasto",
+  crm:           "Campanhas de WhatsApp e cupons de desconto",
+  dashboard:     "Métricas e desempenho em tempo real",
+  relatorios:    "Consulte e exporte pedidos por período",
+  configuracoes: "Horário de funcionamento, zonas de entrega e usuários",
 };
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -63,8 +54,6 @@ export default function AdminPanel() {
 
   const role = user?.role ?? "operador";
   const visibleTabs = TABS.filter((t) => t.roles.includes(role));
-
-  // Garante que a tab atual é visível para o papel do usuário
   const activeTab = visibleTabs.find((t) => t.id === tab) ? tab : visibleTabs[0]?.id ?? "pedidos";
 
   return (
@@ -106,16 +95,13 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      {activeTab === "pedidos"    && <OrdersDashboard />}
-      {activeTab === "cardapio"   && <MenuManagement />}
-      {activeTab === "clientes"   && <CustomersPanel />}
-      {activeTab === "cupons"     && <CouponsPanel />}
-      {activeTab === "crm"        && <CrmPanel />}
-      {activeTab === "dashboard"  && <AdminDashboard />}
-      {activeTab === "relatorios" && <AdminReports />}
-      {activeTab === "usuarios"   && <UsersPanel />}
-      {activeTab === "zonas"          && <DeliveryZonesPanel />}
-      {activeTab === "configuracoes"  && <SettingsPanel />}
+      {activeTab === "pedidos"       && <OrdersDashboard />}
+      {activeTab === "cardapio"      && <MenuManagement />}
+      {activeTab === "clientes"      && <CustomersPanel />}
+      {activeTab === "crm"           && <CrmCuponsPanel />}
+      {activeTab === "dashboard"     && <AdminDashboard />}
+      {activeTab === "relatorios"    && <AdminReports />}
+      {activeTab === "configuracoes" && <ConfiguracoesPanel />}
     </main>
   );
 }

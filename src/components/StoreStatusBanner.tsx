@@ -18,15 +18,20 @@ export default function StoreStatusBanner() {
     );
   }
 
+  const message = manually_closed
+    ? "Estamos fechados no momento. Voltamos em breve."
+    : next_open
+    ? `Estamos fechados no momento. Abrimos ${next_open}.`
+    : "Estamos fechados no momento.";
+
   return (
-    <div className="bg-foreground px-4 py-3 text-center text-sm text-background">
-      <span className="font-semibold">Estamos fechados no momento.</span>
-      {next_open && (
-        <span className="ml-1 opacity-80">
-          {manually_closed ? "Voltamos em breve." : `Abrimos ${next_open}.`}
-        </span>
-      )}
-      {manually_closed && !next_open && <span className="ml-1 opacity-80">Voltamos em breve.</span>}
+    <div
+      style={{ background: "#DC2626" }}
+      className="w-full px-4 py-4 text-center"
+    >
+      <p className="text-base font-bold text-white sm:text-lg">
+        🔒 {message}
+      </p>
     </div>
   );
 }
