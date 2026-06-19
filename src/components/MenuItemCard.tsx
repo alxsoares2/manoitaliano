@@ -40,9 +40,11 @@ const rowClass =
 export default function MenuItemCard({
   item,
   siblingPizzas = [],
+  storeClosed = false,
 }: {
   item: PizzaItem | SimpleItem;
   siblingPizzas?: PizzaItem[];
+  storeClosed?: boolean;
 }) {
   const { addItem } = useCart();
   const [modalOpen, setModalOpen] = useState(false);
@@ -50,7 +52,7 @@ export default function MenuItemCard({
   if (item.kind === "pizza") {
     return (
       <>
-        <button onClick={() => setModalOpen(true)} className={rowClass}>
+        <button onClick={() => !storeClosed && setModalOpen(true)} disabled={storeClosed} className={`${rowClass} disabled:cursor-not-allowed disabled:opacity-50`}>
           <div className="min-w-0 flex-1">
             <h3 className="truncate font-display text-base font-semibold text-foreground">{item.name}</h3>
             <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p>
@@ -73,7 +75,7 @@ export default function MenuItemCard({
   if (item.options) {
     return (
       <>
-        <button onClick={() => setModalOpen(true)} className={rowClass}>
+        <button onClick={() => !storeClosed && setModalOpen(true)} disabled={storeClosed} className={`${rowClass} disabled:cursor-not-allowed disabled:opacity-50`}>
           <div className="min-w-0 flex-1">
             <h3 className="truncate font-display text-base font-semibold text-foreground">{item.name}</h3>
             {item.description && (
@@ -101,7 +103,8 @@ export default function MenuItemCard({
         <span className="mt-1.5 block text-sm font-medium text-foreground">{formatPrice(item.price)}</span>
         <button
           onClick={() => addItem({ itemId: item.id, name: item.name, unitPrice: item.price })}
-          className="mt-1.5 rounded-full border border-foreground px-4 py-1 text-xs font-semibold uppercase tracking-widest text-foreground transition hover:bg-foreground hover:text-background"
+          disabled={storeClosed}
+          className="mt-1.5 rounded-full border border-foreground px-4 py-1 text-xs font-semibold uppercase tracking-widest text-foreground transition hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-40"
         >
           Adicionar
         </button>

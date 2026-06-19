@@ -14,7 +14,7 @@ import { CustomerDetails, emptyCustomerDetails } from "@/types/order";
 type Step = "cart" | "checkout" | "payment" | "pix" | "success";
 type PixData = { qrCode: string; qrCodeBase64: string; orderId: string };
 
-export default function CartSidebar() {
+export default function CartSidebar({ storeClosed = false }: { storeClosed?: boolean }) {
   const { items, isOpen, closeCart, updateQty, removeItem, totalPrice, clearCart } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [orderDetails, setOrderDetails] = useState<CustomerDetails>(emptyCustomerDetails);
@@ -155,11 +155,11 @@ export default function CartSidebar() {
             <span className="font-display text-xl font-semibold text-foreground">{formatPrice(totalPrice)}</span>
           </div>
           <button
-            disabled={items.length === 0}
+            disabled={items.length === 0 || storeClosed}
             onClick={() => setStep("checkout")}
             className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Fechar pedido
+            {storeClosed ? "Loja fechada" : "Fechar pedido"}
           </button>
         </div>
       </aside>

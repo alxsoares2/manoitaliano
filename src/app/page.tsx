@@ -5,11 +5,13 @@ import Header from "@/components/Header";
 import CategoryNav from "@/components/CategoryNav";
 import MenuItemCard from "@/components/MenuItemCard";
 import CartSidebar from "@/components/CartSidebar";
+import StoreStatusBanner from "@/components/StoreStatusBanner";
+import { StoreStatusProvider, useStoreStatus } from "@/context/StoreStatusContext";
 import { supabase } from "@/lib/supabase";
 import { MenuItemRecord } from "@/types/menuItem";
 import { groupActiveItemsByCategory } from "@/lib/menuItems";
 
-export default function Home() {
+function HomeContent() {
   const [items, setItems] = useState<MenuItemRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,8 +51,12 @@ export default function Home() {
   const menu = groupActiveItemsByCategory(items);
   const allPizzas = menu.flatMap((c) => c.items.filter((i) => i.kind === "pizza")) as import("@/types/menu").PizzaItem[];
 
+  const { open, loading: statusLoading } = useStoreStatus();
+  const storeClosed = !statusLoading && !open;
+
   return (
     <>
+      <StoreStatusBanner />
       <Header />
 
       {/* Hero */}
@@ -124,6 +130,7 @@ export default function Home() {
                         ? allPizzas.filter((p) => p.id !== item.id)
                         : []
                     }
+                    storeClosed={storeClosed}
                   />
                 ))}
               </div>
@@ -178,7 +185,15 @@ export default function Home() {
         </div>
       </footer>
 
-      <CartSidebar />
+      <CartSidebar storeClosed={storeClosed} />
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <StoreStatusProvider>
+      <HomeContent />
+    </StoreStatusProvider>
   );
 }
