@@ -1,10 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWhatsappText, SITE_URL } from "@/lib/zapi";
-import { formatPhoneForWhatsapp } from "@/lib/whatsapp";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const MODEL = "claude-sonnet-4-6";
-const SESSION_TTL_MS = 30 * 60 * 1000; // 30 min — sessão expira e reseta
+const SESSION_TTL_MS = 30 * 60 * 1000;
 
 type Message = { role: "user" | "assistant"; content: string };
 type Session = {
@@ -14,7 +13,11 @@ type Session = {
   updated_at: string;
 };
 
-// ─── buscar/criar sessão ──────────────────────────────────────────
+function normalize(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+// ─── sessão ───────────────────────────────────────────────────────
 async function getSession(phone: string): Promise<Session> {
   const { data } = await supabaseAdmin
     .from("whatsapp_sessions")
@@ -25,7 +28,6 @@ async function getSession(phone: string): Promise<Session> {
   if (data) {
     const elapsed = Date.now() - new Date(data.updated_at).getTime();
     if (elapsed > SESSION_TTL_MS) {
-      // Sessão expirada — reseta
       await supabaseAdmin
         .from("whatsapp_sessions")
         .update({ state: {}, messages: [], updated_at: new Date().toISOString() })
@@ -34,64 +36,69 @@ async function getSession(phone: string): Promise<Session> {
     }
     return {
       phone,
-      state: data.state as Record<string, unknown>,
+      state: (data.state as Record<string, unknown>) ?? {},
       messages: (data.messages as Message[]) ?? [],
       updated_at: data.updated_at,
     };
   }
 
-  // Nova sessão
   await supabaseAdmin.from("whatsapp_sessions").insert({ phone, state: {}, messages: [] });
   return { phone, state: {}, messages: [], updated_at: new Date().toISOString() };
 }
 
 async function saveSession(phone: string, state: Record<string, unknown>, messages: Message[]) {
-  // Limita histórico a 40 mensagens para não estourar contexto
   const trimmed = messages.slice(-40);
   await supabaseAdmin
     .from("whatsapp_sessions")
     .upsert({ phone, state, messages: trimmed, updated_at: new Date().toISOString() }, { onConflict: "phone" });
 }
 
-// ─── buscar dados do cardápio ─────────────────────────────────────
-async function getMenuSummary(): Promise<string> {
+// ─── cardápio numerado ────────────────────────────────────────────
+type MenuItem = {
+  name: string;
+  category_id: string;
+  price: number | null;
+  price_media: number | null;
+  price_grande: number | null;
+  description: string | null;
+  options: string | null;
+  kind: string;
+};
+
+async function getMenuItems(): Promise<MenuItem[]> {
   const { data, error } = await supabaseAdmin
     .from("menu_items")
     .select("name, category_id, price, price_media, price_grande, description, options, is_active, kind")
     .eq("is_active", true)
-    .order("category_id")
     .order("sort_order");
 
-  if (error) { console.error("[chatbot] getMenuSummary error:", error); return "Cardápio indisponível no momento."; }
-  if (!data?.length) return "Cardápio indisponível no momento.";
-
-  const catLabels: Record<string, string> = {
-    "favoritas-da-casa": "Pizzas Favoritas da Casa",
-    "classicas": "Pizzas Clássicas",
-    "especiais": "Pizzas Especiais",
-    "doces": "Pizzas Doces",
-    "entradas": "Entradas",
-    "bebidas": "Bebidas",
-    "bordas": "Bordas Recheadas",
-  };
-
-  const grouped: Record<string, string[]> = {};
-  for (const item of data) {
-    const cat = catLabels[item.category_id] || item.category_id;
-    if (!grouped[cat]) grouped[cat] = [];
-    if (item.price_media && item.price_grande) {
-      grouped[cat].push(`• ${item.name}: Média R$${Number(item.price_media).toFixed(2)} / Grande R$${Number(item.price_grande).toFixed(2)}${item.description ? ` — ${item.description}` : ""}`);
-    } else if (item.options) {
-      grouped[cat].push(`• ${item.name}: R$${Number(item.price).toFixed(2)} (opções: ${item.options})${item.description ? ` — ${item.description}` : ""}`);
-    } else {
-      grouped[cat].push(`• ${item.name}: R$${Number(item.price).toFixed(2)}${item.description ? ` — ${item.description}` : ""}`);
-    }
-  }
-
-  return Object.entries(grouped).map(([cat, items]) => `📋 ${cat}:\n${items.join("\n")}`).join("\n\n");
+  if (error) { console.error("[chatbot] getMenuItems error:", error); return []; }
+  return (data ?? []) as MenuItem[];
 }
 
-// ─── buscar dados do cliente recorrente ───────────────────────────
+function buildNumberedMenu(items: MenuItem[]): string {
+  const nonBordas = items.filter((i) => i.category_id !== "bordas");
+  if (!nonBordas.length) return "Cardápio indisponível no momento.";
+
+  return nonBordas.map((item, i) => {
+    const num = i + 1;
+    if (item.price_media && item.price_grande) {
+      return `${num}. ${item.name} — Média R$${Number(item.price_media).toFixed(2)} / Grande R$${Number(item.price_grande).toFixed(2)}${item.description ? `\n   ${item.description}` : ""}`;
+    }
+    if (item.options) {
+      return `${num}. ${item.name} — R$${Number(item.price).toFixed(2)} (${item.options})`;
+    }
+    return `${num}. ${item.name} — R$${Number(item.price).toFixed(2)}${item.description ? ` — ${item.description}` : ""}`;
+  }).join("\n");
+}
+
+function buildBordasList(items: MenuItem[]): string {
+  const bordas = items.filter((i) => i.category_id === "bordas");
+  if (!bordas.length) return "Sem bordas disponíveis.";
+  return bordas.map((b) => `• ${b.name}: R$${Number(b.price).toFixed(2)}`).join("\n");
+}
+
+// ─── cliente recorrente ───────────────────────────────────────────
 async function getCustomerByPhone(phone: string): Promise<Record<string, unknown> | null> {
   const digits = phone.replace(/\D/g, "");
   const search = digits.startsWith("55") ? digits.slice(2) : digits;
@@ -104,21 +111,30 @@ async function getCustomerByPhone(phone: string): Promise<Record<string, unknown
   return data as Record<string, unknown> | null;
 }
 
-// ─── buscar frete ─────────────────────────────────────────────────
-async function getDeliveryFee(neighborhood: string): Promise<{ fee: number; time: string } | null> {
-  const normalized = neighborhood.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+// ─── frete ────────────────────────────────────────────────────────
+async function getDeliveryFee(neighborhood: string): Promise<{ fee: number; time: string; matchedName: string } | null> {
+  const norm = normalize(neighborhood);
   const { data } = await supabaseAdmin
     .from("delivery_zones")
     .select("delivery_fee, estimated_time, neighborhood")
     .eq("active", true);
 
   if (!data) return null;
-  const match = data.find((z) => {
-    const n = z.neighborhood.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-    return n === normalized;
-  });
+  const match = data.find((z) => normalize(z.neighborhood) === norm);
   if (!match) return null;
-  return { fee: Number(match.delivery_fee), time: match.estimated_time };
+  return { fee: Number(match.delivery_fee), time: match.estimated_time, matchedName: match.neighborhood };
+}
+
+// ─── ViaCEP ───────────────────────────────────────────────────────
+async function lookupCep(cep: string): Promise<{ bairro: string; logradouro: string; localidade: string } | null> {
+  const digits = cep.replace(/\D/g, "");
+  if (digits.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    const data = await res.json();
+    if (data.erro) return null;
+    return { bairro: data.bairro ?? "", logradouro: data.logradouro ?? "", localidade: data.localidade ?? "" };
+  } catch { return null; }
 }
 
 // ─── criar pedido ─────────────────────────────────────────────────
@@ -132,77 +148,95 @@ async function createOrder(orderData: Record<string, unknown>): Promise<string |
   return data.id;
 }
 
-// ─── buscar bordas disponíveis ────────────────────────────────────
-async function getBordasSummary(): Promise<string> {
-  const { data } = await supabaseAdmin
-    .from("menu_items")
-    .select("name, price")
-    .eq("category_id", "bordas")
-    .eq("is_active", true);
-  if (!data?.length) return "Sem bordas disponíveis.";
-  return data.map((b) => `• ${b.name}: R$${Number(b.price).toFixed(2)}`).join("\n");
-}
-
 // ─── system prompt ────────────────────────────────────────────────
-function buildSystemPrompt(menu: string, bordas: string, customerInfo: string | null, isFirstMessage = false): string {
-  const firstMessageInstruction = isFirstMessage
-    ? `\nATENÇÃO: Esta é a PRIMEIRA mensagem do cliente. Independente do que ele escreveu, cumprimente-o calorosamente, apresente a Basílico Pizzas em 1-2 frases e IMEDIATAMENTE mostre as categorias do cardápio (só os nomes das categorias, sem listar todos os itens). Exemplo: "Temos Pizzas Clássicas, Favoritas da Casa, Especiais, Doces, Entradas e Bebidas. Qual categoria te interessa?"\n`
-    : "";
+function buildSystemPrompt(
+  numberedMenu: string,
+  bordas: string,
+  sessionState: Record<string, unknown>,
+  customerInfo: string | null,
+): string {
+  const cepConfirmed = sessionState.cep_confirmed === true;
+  const neighborhood = sessionState.neighborhood as string | undefined;
+  const frete = sessionState.frete as number | undefined;
+  const freteTime = sessionState.frete_time as string | undefined;
+  const address = sessionState.address as string | undefined;
+  const cep = sessionState.cep as string | undefined;
+
+  let addressContext = "";
+  if (cepConfirmed && neighborhood) {
+    addressContext = `\nENDEREÇO CONFIRMADO: Bairro ${neighborhood}, CEP ${cep ?? "?"}, Rua ${address ?? "?"}\nFrete: R$${frete?.toFixed(2) ?? "?"} (${freteTime ?? "?"})\n`;
+  }
+
+  const isFirstMessage = !sessionState.greeted;
+
+  let firstInstruction = "";
+  if (isFirstMessage) {
+    firstInstruction = `
+ATENÇÃO — PRIMEIRA MENSAGEM:
+O cliente AINDA NÃO informou o CEP. Cumprimente-o, apresente brevemente a Basílico Pizzas e peça o CEP para verificar se entregamos na região dele. NÃO mostre o cardápio ainda.
+Exemplo: "Olá! 🍕 Bem-vindo à Basílico Pizzas! Para começarmos, me diz seu CEP que verifico se entregamos na sua região."
+EXCEÇÃO: Se o cliente já mencionou itens específicos do cardápio (ex: "quero uma calabresa grande"), reconheça o pedido, mas ainda peça o CEP primeiro antes de continuar.
+`;
+  }
+
+  let cepPendingInstruction = "";
+  if (!isFirstMessage && !cepConfirmed) {
+    cepPendingInstruction = `
+O CEP AINDA NÃO FOI CONFIRMADO. O cliente pode estar informando o CEP agora. Se a mensagem contiver 8 dígitos numéricos (com ou sem hífen), trate como CEP. Caso contrário, peça o CEP novamente educadamente.
+Quando o sistema confirmar o bairro (você verá nos dados da sessão), aí sim mostre o cardápio.
+`;
+  }
+
+  let menuInstruction = "";
+  if (cepConfirmed) {
+    menuInstruction = `
+O cardápio está numerado. O cliente pode digitar o NÚMERO do item ou descrever o que quer em linguagem natural (ex: "quero o 3 grande" ou "quero uma calabresa grande com borda de chocolate").
+Se o cliente mencionar itens diretamente sem ver o cardápio, identifique os itens pelo nome, monte o pedido e confirme com ele.
+`;
+  }
 
   return `Você é o atendente virtual da Basílico Pizzas, uma pizzaria artesanal premium em João Pessoa/PB.
-${firstMessageInstruction}
-Seu tom é amigável, simpático e eficiente. Use emojis com moderação. Seja direto mas acolhedor.
-Você está conversando via WhatsApp com um cliente.
-
-REGRAS IMPORTANTES:
+Seu tom é amigável, simpático e eficiente. Use emojis com moderação (máximo 2-3 por mensagem). Seja direto.
+Conversa via WhatsApp.
+${firstInstruction}${cepPendingInstruction}${menuInstruction}
+REGRAS:
 - Responda SEMPRE em português brasileiro
-- NÃO use markdown. WhatsApp não renderiza markdown. Use texto simples com emojis para organizar.
-- Mantenha respostas curtas (máximo 3-4 parágrafos por mensagem)
-- Quebre em mensagens menores quando tiver muita informação
-- Se o cliente pedir algo que não está no cardápio, informe educadamente
-- Se o cliente quiser falar com humano, diga para ligar (83) 99322-8832 ou ir ao Instagram @basilicopizzas
-- O endereço da loja é Av. Bananeiras, 190, Manaíra, João Pessoa/PB
+- NÃO use markdown (sem **, ##, etc.). Use texto simples.
+- Respostas curtas (máximo 4 parágrafos)
+- Se quiser falar com humano: (83) 99322-8832 ou @basilicopizzas no Instagram
+- Endereço: Av. Bananeiras, 190, Manaíra, João Pessoa/PB
 - Horário: Seg-Qui 17h-22h, Sex-Dom 17h-23h
+${addressContext}
+${customerInfo ? `CLIENTE RECORRENTE:\n${customerInfo}\n` : ""}
 
-CARDÁPIO COMPLETO:
-${menu}
+CARDÁPIO NUMERADO:
+${numberedMenu}
 
-BORDAS RECHEADAS DISPONÍVEIS:
+BORDAS RECHEADAS:
 ${bordas}
 
-${customerInfo ? `DADOS DO CLIENTE RECORRENTE:\n${customerInfo}\n` : ""}
+FLUXO (seja flexível — se o cliente pular etapas, acompanhe):
+1. Pedir CEP → verificar bairro → confirmar frete
+2. Mostrar cardápio numerado
+3. Cliente escolhe item (número ou texto livre) → perguntar tamanho se for pizza
+4. Perguntar meio a meio (S/N) → se sim, mostrar sabores
+5. Perguntar borda recheada (S/N)
+6. Perguntar se quer mais algo
+7. Mostrar RESUMO com todos os itens + frete + total
+8. Pedir nome (se não tiver)
+9. Pedir número da casa e complemento (se não tiver)
+10. Perguntar pagamento: PIX ou Cartão
+11. Confirmar pedido
 
-FLUXO DE ATENDIMENTO (siga esta ordem, mas seja flexível se o cliente pular etapas):
-1. Cumprimente e pergunte o que deseja
-2. Quando pedir o cardápio, mostre as CATEGORIAS primeiro (Pizzas Salgadas, Pizzas Doces, Entradas, etc.)
-3. Quando escolher categoria, mostre os itens COM PREÇOS
-4. Quando escolher pizza, pergunte o tamanho (Média ou Grande)
-5. Pergunte se quer meio a meio (só pizza). Se sim, mostre sabores da mesma categoria
-6. Pergunte se quer borda recheada. Se sim, mostre opções e preços
-7. Pergunte se quer adicionar mais pizzas
-8. Pergunte se quer bebida (refrigerantes/água)
-9. Pergunte se quer Pizza Nutella individual (sobremesa)
-10. Mostre o RESUMO do pedido com todos os itens e valores
-11. Pergunte o telefone do cliente (se ainda não tiver)
-12. Se for cliente recorrente, confirme o endereço salvo. Se novo, peça CEP, número e complemento
-13. Calcule o frete pelo bairro (informe ao cliente)
-14. Mostre o TOTAL FINAL (itens + frete)
-15. Pergunte forma de pagamento: PIX ou Cartão
-16. Confirme o pedido e envie link de acompanhamento
+PEDIDO DIRETO: Se o cliente já disse o que quer na mensagem (ex: "quero uma calabresa grande e uma coca"), pule direto para o resumo após confirmar CEP/endereço. Não force o fluxo completo.
 
-QUANDO O PEDIDO FOR FINALIZADO:
-Responda EXATAMENTE neste formato na última linha (o sistema vai extrair o JSON):
-##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande","borda":"nome da borda ou null","option":"sabor se for bebida ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":"observações ou null"}##END_ORDER##
+QUANDO FINALIZAR, inclua na última linha:
+##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande ou null","borda":"nome ou null","option":"sabor bebida ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":null}##END_ORDER##
 
-O unitPrice é o preço da pizza/item. O bordaPrice é o preço da borda (0 se sem borda).
-Use o preço do tamanho escolhido (média ou grande).
-Para meio a meio: cobre o valor da pizza MAIS CARA entre as duas metades.
-
-IMPORTANTE: só emita o JSON quando tiver TODOS os dados: nome, endereço completo, itens, e confirmação do cliente.
-Quando o cliente confirmar o pedido, inclua o JSON E a mensagem de confirmação.`;
+Preços: use unitPrice do tamanho escolhido. Meio a meio = preço da pizza mais cara. Só emita JSON com TODOS os dados completos e confirmação do cliente.`;
 }
 
-// ─── chamar Claude ────────────────────────────────────────────────
+// ─── Claude ───────────────────────────────────────────────────────
 async function callClaude(systemPrompt: string, messages: Message[]): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -213,7 +247,7 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 1500,
       system: systemPrompt,
       messages,
     }),
@@ -222,7 +256,7 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
   if (!res.ok) {
     const err = await res.text();
     console.error("[chatbot] Claude API error:", res.status, err);
-    return "Desculpe, estou com dificuldade técnica no momento. Tente novamente em instantes ou ligue (83) 99322-8832.";
+    return "Desculpe, estou com dificuldade técnica. Tente novamente ou ligue (83) 99322-8832.";
   }
 
   const data = await res.json();
@@ -255,7 +289,6 @@ async function processOrderFromResponse(response: string, phone: string): Promis
 
     if (!orderId) return null;
 
-    // Upsert customer
     const digits = phone.replace(/\D/g, "");
     const cleanPhone = digits.startsWith("55") ? digits.slice(2) : digits;
     await supabaseAdmin.from("customers").upsert(
@@ -279,72 +312,109 @@ async function processOrderFromResponse(response: string, phone: string): Promis
   }
 }
 
-// ─── principal: processar mensagem ────────────────────────────────
+// ─── principal ────────────────────────────────────────────────────
 export async function handleIncomingMessage(phone: string, text: string) {
   const session = await getSession(phone);
+  const state = { ...session.state } as Record<string, unknown>;
 
-  // Adiciona mensagem do usuário
   session.messages.push({ role: "user", content: text });
 
-  // Busca contexto
-  const [menu, bordas, customer] = await Promise.all([
-    getMenuSummary(),
-    getBordasSummary(),
+  // --- Passo intermediário: verificar CEP se ainda não confirmado ---
+  if (!state.cep_confirmed) {
+    const cepMatch = text.match(/\d{5}[-.\s]?\d{3}/);
+    if (cepMatch) {
+      const cepDigits = cepMatch[0].replace(/\D/g, "");
+      const via = await lookupCep(cepDigits);
+      if (via) {
+        const frete = await getDeliveryFee(via.bairro);
+        if (frete) {
+          state.cep = cepDigits;
+          state.cep_confirmed = true;
+          state.neighborhood = frete.matchedName;
+          state.frete = frete.fee;
+          state.frete_time = frete.time;
+          state.address = via.logradouro;
+          state.greeted = true;
+
+          // Busca o cardápio para incluir na mensagem de confirmação
+          const menuItems = await getMenuItems();
+          const numberedMenu = buildNumberedMenu(menuItems);
+
+          // Injeta uma mensagem de sistema informando o resultado do CEP
+          session.messages.push({
+            role: "assistant",
+            content: `CEP ${cepDigits} confirmado! Bairro: ${frete.matchedName}. Rua: ${via.logradouro}. Frete: R$${frete.fee.toFixed(2)} (${frete.time}).\n\nAgora vou mostrar nosso cardápio:\n\n${numberedMenu}\n\nQual item te interessa? Pode digitar o número ou me dizer o que quer!`,
+          });
+
+          await saveSession(phone, state, session.messages);
+          const chunks = splitMessage(session.messages[session.messages.length - 1].content);
+          for (const chunk of chunks) {
+            await sendWhatsappText(phone, chunk);
+            if (chunks.length > 1) await delay(800);
+          }
+          return;
+        } else {
+          // Bairro não atendido
+          state.greeted = true;
+          const msg = `Poxa, infelizmente ainda não entregamos no bairro "${via.bairro}" (${via.localidade}). 😢\n\nNosso delivery cobre bairros de João Pessoa e região. Você pode tentar outro endereço ou fazer a retirada no balcão: Av. Bananeiras, 190, Manaíra.\n\nQualquer dúvida: (83) 99322-8832`;
+          session.messages.push({ role: "assistant", content: msg });
+          await saveSession(phone, state, session.messages);
+          await sendWhatsappText(phone, msg);
+          return;
+        }
+      } else {
+        state.greeted = true;
+        const msg = "Não encontrei esse CEP. Pode verificar e enviar novamente? O formato é 00000-000.";
+        session.messages.push({ role: "assistant", content: msg });
+        await saveSession(phone, state, session.messages);
+        await sendWhatsappText(phone, msg);
+        return;
+      }
+    }
+  }
+
+  // --- Busca dados ---
+  const [menuItems, customer] = await Promise.all([
+    getMenuItems(),
     getCustomerByPhone(phone),
   ]);
 
-  // Busca frete se o cliente já informou bairro (estado da sessão)
-  let freteInfo = "";
-  const neighborhood = (session.state as Record<string, unknown>).neighborhood as string | undefined;
-  if (neighborhood) {
-    const frete = await getDeliveryFee(neighborhood);
-    if (frete) freteInfo = `\nFrete para ${neighborhood}: R$${frete.fee.toFixed(2)} (${frete.time})`;
-    else freteInfo = `\nBairro "${neighborhood}" não está na área de entrega.`;
-  }
+  const numberedMenu = buildNumberedMenu(menuItems);
+  const bordas = buildBordasList(menuItems);
 
   const customerInfo = customer
     ? `Nome: ${customer.name}\nTelefone: ${customer.phone}\nEndereço: ${customer.address}, ${customer.number}\nBairro: ${customer.neighborhood}\nCEP: ${customer.cep}\nComplemento: ${customer.complement || "N/A"}`
     : null;
 
-  const isFirstMessage = session.messages.length === 1;
-  const systemPrompt = buildSystemPrompt(menu + freteInfo, bordas, customerInfo, isFirstMessage);
+  // Marca como saudado
+  if (!state.greeted) state.greeted = true;
 
-  // Chama Claude
+  const systemPrompt = buildSystemPrompt(numberedMenu, bordas, state, customerInfo);
   const response = await callClaude(systemPrompt, session.messages);
 
-  // Verifica se tem pedido finalizado
+  // Verifica pedido finalizado
   const orderResult = await processOrderFromResponse(response, phone);
 
   let finalResponse: string;
   if (orderResult) {
     const trackingUrl = `${SITE_URL}/pedido/${orderResult.orderId}`;
     finalResponse = orderResult.cleanResponse + `\n\n📦 Acompanhe seu pedido: ${trackingUrl}`;
-    // Reseta sessão após pedido
     await saveSession(phone, {}, []);
   } else {
     finalResponse = response;
-    // Salva sessão com histórico atualizado
     session.messages.push({ role: "assistant", content: response });
-
-    // Tenta extrair bairro da conversa para calcular frete no próximo turno
-    const bairroMatch = response.match(/[Bb]airro[:\s]+([^\n,]+)/);
-    if (bairroMatch) {
-      session.state = { ...session.state, neighborhood: bairroMatch[1].trim() };
-    }
-
-    await saveSession(phone, session.state as Record<string, unknown>, session.messages);
+    await saveSession(phone, state, session.messages);
   }
 
-  // Envia resposta via Z-API (quebra em mensagens se muito longa)
   const chunks = splitMessage(finalResponse);
   for (const chunk of chunks) {
     await sendWhatsappText(phone, chunk);
-    // Pequeno delay entre mensagens para parecer natural
-    if (chunks.length > 1) await new Promise((r) => setTimeout(r, 800));
+    if (chunks.length > 1) await delay(800);
   }
 }
 
-// Quebra mensagem longa em partes de ~1500 chars respeitando quebras de linha
+function delay(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+
 function splitMessage(text: string, maxLen = 1500): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];

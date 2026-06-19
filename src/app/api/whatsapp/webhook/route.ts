@@ -1,41 +1,48 @@
 import { NextResponse } from "next/server";
 import { handleIncomingMessage } from "@/lib/chatbot";
 
-const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN;
 const BOT_PHONE = process.env.ZAPI_BOT_PHONE ?? "5583993228832";
+
+// Deduplicação: guarda messageIds processados nos últimos 60s
+const processed = new Map<string, number>();
+const DEDUP_TTL = 60_000;
+
+function cleanProcessed() {
+  const now = Date.now();
+  for (const [k, t] of processed) {
+    if (now - t > DEDUP_TTL) processed.delete(k);
+  }
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Z-API não envia Client-Token como header nos webhooks de recebimento.
-    // A segurança vem pelo URL secreto + validação do payload.
+    // Z-API envia vários tipos de callback — só processar mensagens recebidas
+    // fromMe: true = enviada pelo bot; ignorar
+    if (body.fromMe === true) return NextResponse.json({ ok: true });
 
-    // Z-API envia diferentes tipos de eventos — só processar mensagens de texto recebidas
-    const isMessage = body.type === "ReceivedCallback" || body.text?.message;
-    if (!isMessage) {
-      return NextResponse.json({ ok: true });
-    }
+    // Só processar texto recebido
+    const text = body.text?.message;
+    const phone = body.phone;
+    if (!phone || !text) return NextResponse.json({ ok: true });
 
-    const phone = body.phone ?? body.from;
-    const text = body.text?.message ?? body.body ?? body.message;
+    // Ignorar grupos
+    if (body.isGroup || phone.includes("@g.us")) return NextResponse.json({ ok: true });
 
-    if (!phone || !text) {
-      return NextResponse.json({ ok: true });
-    }
-
-    // Ignora mensagens enviadas pelo próprio bot
     const senderDigits = phone.replace(/\D/g, "");
-    if (senderDigits === BOT_PHONE || senderDigits === BOT_PHONE.replace(/^55/, "")) {
-      return NextResponse.json({ ok: true });
-    }
 
-    // Ignora mensagens de grupo
-    if (body.isGroup || body.isGroupMsg || phone.includes("@g.us")) {
+    // Ignorar mensagens do próprio número do bot
+    const botDigits = BOT_PHONE.replace(/\D/g, "");
+    if (senderDigits === botDigits || senderDigits === botDigits.replace(/^55/, ""))
       return NextResponse.json({ ok: true });
-    }
 
-    // Deve ser await — no Vercel Serverless, fire-and-forget é encerrado antes de completar
+    // Deduplicação por messageId
+    const msgId = body.messageId ?? body.id?.id ?? `${senderDigits}-${text.slice(0, 50)}`;
+    cleanProcessed();
+    if (processed.has(msgId)) return NextResponse.json({ ok: true });
+    processed.set(msgId, Date.now());
+
     try {
       await handleIncomingMessage(senderDigits, text);
     } catch (err) {
@@ -49,7 +56,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Z-API faz GET para verificar se o webhook está ativo
 export async function GET() {
   return NextResponse.json({ status: "active" });
 }
