@@ -55,18 +55,29 @@ async function saveSession(phone: string, state: Record<string, unknown>, messag
 
 // ─── buscar dados do cardápio ─────────────────────────────────────
 async function getMenuSummary(): Promise<string> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("menu_items")
-    .select("name, category, price, price_media, price_grande, description, options, active")
-    .eq("active", true)
-    .order("category")
-    .order("name");
+    .select("name, category_id, price, price_media, price_grande, description, options, is_active, kind")
+    .eq("is_active", true)
+    .order("category_id")
+    .order("sort_order");
 
+  if (error) { console.error("[chatbot] getMenuSummary error:", error); return "Cardápio indisponível no momento."; }
   if (!data?.length) return "Cardápio indisponível no momento.";
+
+  const catLabels: Record<string, string> = {
+    "favoritas-da-casa": "Pizzas Favoritas da Casa",
+    "classicas": "Pizzas Clássicas",
+    "especiais": "Pizzas Especiais",
+    "doces": "Pizzas Doces",
+    "entradas": "Entradas",
+    "bebidas": "Bebidas",
+    "bordas": "Bordas Recheadas",
+  };
 
   const grouped: Record<string, string[]> = {};
   for (const item of data) {
-    const cat = item.category || "Outros";
+    const cat = catLabels[item.category_id] || item.category_id;
     if (!grouped[cat]) grouped[cat] = [];
     if (item.price_media && item.price_grande) {
       grouped[cat].push(`• ${item.name}: Média R$${Number(item.price_media).toFixed(2)} / Grande R$${Number(item.price_grande).toFixed(2)}${item.description ? ` — ${item.description}` : ""}`);
@@ -126,15 +137,20 @@ async function getBordasSummary(): Promise<string> {
   const { data } = await supabaseAdmin
     .from("menu_items")
     .select("name, price")
-    .eq("category", "Bordas")
-    .eq("active", true);
+    .eq("category_id", "bordas")
+    .eq("is_active", true);
   if (!data?.length) return "Sem bordas disponíveis.";
   return data.map((b) => `• ${b.name}: R$${Number(b.price).toFixed(2)}`).join("\n");
 }
 
 // ─── system prompt ────────────────────────────────────────────────
-function buildSystemPrompt(menu: string, bordas: string, customerInfo: string | null): string {
+function buildSystemPrompt(menu: string, bordas: string, customerInfo: string | null, isFirstMessage = false): string {
+  const firstMessageInstruction = isFirstMessage
+    ? `\nATENÇÃO: Esta é a PRIMEIRA mensagem do cliente. Independente do que ele escreveu, cumprimente-o calorosamente, apresente a Basílico Pizzas em 1-2 frases e IMEDIATAMENTE mostre as categorias do cardápio (só os nomes das categorias, sem listar todos os itens). Exemplo: "Temos Pizzas Clássicas, Favoritas da Casa, Especiais, Doces, Entradas e Bebidas. Qual categoria te interessa?"\n`
+    : "";
+
   return `Você é o atendente virtual da Basílico Pizzas, uma pizzaria artesanal premium em João Pessoa/PB.
+${firstMessageInstruction}
 Seu tom é amigável, simpático e eficiente. Use emojis com moderação. Seja direto mas acolhedor.
 Você está conversando via WhatsApp com um cliente.
 
@@ -290,7 +306,8 @@ export async function handleIncomingMessage(phone: string, text: string) {
     ? `Nome: ${customer.name}\nTelefone: ${customer.phone}\nEndereço: ${customer.address}, ${customer.number}\nBairro: ${customer.neighborhood}\nCEP: ${customer.cep}\nComplemento: ${customer.complement || "N/A"}`
     : null;
 
-  const systemPrompt = buildSystemPrompt(menu + freteInfo, bordas, customerInfo);
+  const isFirstMessage = session.messages.length === 1;
+  const systemPrompt = buildSystemPrompt(menu + freteInfo, bordas, customerInfo, isFirstMessage);
 
   // Chama Claude
   const response = await callClaude(systemPrompt, session.messages);
