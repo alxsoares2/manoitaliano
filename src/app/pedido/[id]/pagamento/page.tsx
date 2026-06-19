@@ -222,6 +222,17 @@ export default function PagamentoPage({ params }: { params: Promise<{ id: string
             {submitting ? "Processando..." : `Pagar ${formatPrice(order.total)}`}
           </button>
         </form>
+
+        {/* Footer de segurança */}
+        <div className="mt-8 flex flex-col items-center gap-2 text-center">
+          <div className="flex items-center gap-1.5 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+            <span className="text-xs font-semibold uppercase tracking-wider">Ambiente 100% seguro</span>
+          </div>
+          <p className="text-[11px] text-muted/70">Pagamento processado pelo Mercado Pago</p>
+        </div>
       </div>
     </>
   );

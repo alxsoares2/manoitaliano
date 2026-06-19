@@ -69,7 +69,7 @@ type MenuItem = {
   kind: string;
 };
 
-const SALGADAS_IDS = ["classicas", "favoritas-da-casa", "especiais"];
+const SALGADAS_IDS = ["classicas", "favoritas-da-casa", "especiais-da-casa", "especial"];
 
 async function getMenuItems(): Promise<MenuItem[]> {
   const { data, error } = await supabaseAdmin
@@ -121,10 +121,14 @@ function buildFullMenuForClaude(items: MenuItem[]): string {
   }).join("\n");
 }
 
-function buildBordasList(items: MenuItem[]): string {
-  const bordas = items.filter((i) => i.category_id === "bordas");
-  if (!bordas.length) return "Sem bordas disponíveis.";
-  return bordas.map((b) => `• ${b.name}: R$${Number(b.price).toFixed(2)}`).join("\n");
+function buildBordasList(): string {
+  return [
+    "• Cheddar: R$8,00",
+    "• Catupiry: R$8,00",
+    "• Cream Cheese: R$8,00",
+    "• Chocolate: R$8,00",
+    "• Doce de Leite: R$8,00",
+  ].join("\n");
 }
 
 // ─── cliente recorrente ───────────────────────────────────────────
@@ -297,7 +301,10 @@ PEDIDO DIRETO: se o cliente já mencionou itens na conversa, identifique-os mas 
 QUANDO CONFIRMAR O PEDIDO, inclua na ÚLTIMA linha:
 ##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande ou null","borda":"nome ou null","option":"sabor ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":null}##END_ORDER##
 
-unitPrice = preço do tamanho. Meio a meio = preço da mais cara. Só emita JSON com dados completos + confirmação.`;
+unitPrice = preço do tamanho. Meio a meio = preço da mais cara. Só emita JSON com dados completos + confirmação.
+
+OBSERVAÇÕES DO PEDIDO:
+Se o cliente mencionar QUALQUER modificação, restrição ou pedido especial (ex: "sem cebola", "bem passado", "sem pimenta", "tirar tomate", "pouco sal", "extra queijo", "alergia a camarão"), capture TUDO no campo "notes" do JSON. Junte todas as observações num texto único separado por vírgula. Se não houver observações, use null.`;
 }
 
 // ─── Claude ───────────────────────────────────────────────────────
@@ -531,7 +538,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
   ]);
 
   const fullMenu = buildFullMenuForClaude(menuItems);
-  const bordas = buildBordasList(menuItems);
+  const bordas = buildBordasList();
 
   const customerInfo = customer
     ? `Nome: ${customer.name}\nTelefone: ${customer.phone}\nEndereço: ${customer.address}, ${customer.number}\nBairro: ${customer.neighborhood}\nCEP: ${customer.cep}\nComplemento: ${customer.complement || "N/A"}`
