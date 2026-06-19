@@ -121,14 +121,10 @@ function buildFullMenuForClaude(items: MenuItem[]): string {
   }).join("\n");
 }
 
-function buildBordasList(): string {
-  return [
-    "• Cheddar: R$8,00",
-    "• Catupiry: R$8,00",
-    "• Cream Cheese: R$8,00",
-    "• Chocolate: R$8,00",
-    "• Doce de Leite: R$8,00",
-  ].join("\n");
+function buildBordasList(items: MenuItem[]): string {
+  const bordas = items.filter((i) => i.category_id === "bordas");
+  if (!bordas.length) return "Sem bordas disponíveis.";
+  return bordas.map((b) => `• ${b.name}: R$${Number(b.price).toFixed(2)}`).join("\n");
 }
 
 // ─── cliente recorrente ───────────────────────────────────────────
@@ -538,7 +534,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
   ]);
 
   const fullMenu = buildFullMenuForClaude(menuItems);
-  const bordas = buildBordasList();
+  const bordas = buildBordasList(menuItems);
 
   const customerInfo = customer
     ? `Nome: ${customer.name}\nTelefone: ${customer.phone}\nEndereço: ${customer.address}, ${customer.number}\nBairro: ${customer.neighborhood}\nCEP: ${customer.cep}\nComplemento: ${customer.complement || "N/A"}`
