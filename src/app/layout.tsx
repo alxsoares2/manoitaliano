@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
+import MetaPixel from "@/components/MetaPixel";
 
 const display = Playfair_Display({
   variable: "--font-display",
@@ -31,6 +32,7 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <MetaPixel />
         <CartProvider>{children}</CartProvider>
       </body>
     </html>

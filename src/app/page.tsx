@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { pixel } from "@/lib/pixel";
 import Header from "@/components/Header";
 import CategoryNav from "@/components/CategoryNav";
 import MenuItemCard from "@/components/MenuItemCard";
@@ -14,6 +15,7 @@ import { groupActiveItemsByCategory } from "@/lib/menuItems";
 function HomeContent() {
   const [items, setItems] = useState<MenuItemRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const viewContentFired = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -22,7 +24,13 @@ function HomeContent() {
       .from("menu_items")
       .select("*")
       .then(({ data }) => {
-        if (active && data) setItems(data as MenuItemRecord[]);
+        if (active && data) {
+          setItems(data as MenuItemRecord[]);
+          if (!viewContentFired.current) {
+            viewContentFired.current = true;
+            pixel.viewContent("Cardápio Basílico Pizzas");
+          }
+        }
         if (active) setLoading(false);
       });
 

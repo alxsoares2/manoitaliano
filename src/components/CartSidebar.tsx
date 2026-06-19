@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { pixel } from "@/lib/pixel";
 import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
 import CheckoutForm from "./CheckoutForm";
@@ -36,6 +37,7 @@ export default function CartSidebar({ storeClosed = false }: { storeClosed?: boo
         (payload) => {
           const status = (payload.new as { status?: string }).status;
           if (status && status !== "pendente" && status !== "cancelado") {
+            pixel.purchase(totalPrice + deliveryFee, pixData.orderId);
             clearCart();
             setPixConfirmed(true);
             // Mostra "Pagamento confirmado!" por um instante antes do sucesso.
@@ -75,6 +77,7 @@ export default function CartSidebar({ storeClosed = false }: { storeClosed?: boo
   };
 
   const handleCardSuccess = () => {
+    pixel.purchase(totalPrice + deliveryFee, "card-" + Date.now());
     clearCart();
     setStep("success");
   };
@@ -156,7 +159,10 @@ export default function CartSidebar({ storeClosed = false }: { storeClosed?: boo
           </div>
           <button
             disabled={items.length === 0 || storeClosed}
-            onClick={() => setStep("checkout")}
+            onClick={() => {
+              pixel.initiateCheckout(totalPrice, items.reduce((s, i) => s + i.qty, 0));
+              setStep("checkout");
+            }}
             className="w-full rounded-xl bg-foreground px-5 py-3.5 font-semibold text-background transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-40"
           >
             {storeClosed ? "Loja fechada" : "Fechar pedido"}

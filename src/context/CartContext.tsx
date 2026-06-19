@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
   ReactNode,
 } from "react";
+import { pixel } from "@/lib/pixel";
 
 export type CartItem = {
   lineId: string;
@@ -104,6 +105,7 @@ function addItem(item: Omit<CartItem, "lineId" | "qty">, qty = 1) {
   persist();
   isOpen = true;
   emit();
+  pixel.addToCart(item.name, item.unitPrice * qty);
 }
 
 function removeItem(lineId: string) {
