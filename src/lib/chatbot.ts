@@ -1,9 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWhatsappText, SITE_URL } from "@/lib/zapi";
+import { MercadoPagoConfig, Payment } from "mercadopago";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const MODEL = "claude-sonnet-4-6";
 const SESSION_TTL_MS = 30 * 60 * 1000;
+
+const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
+const mpPayment = new Payment(mp);
 
 type Message = { role: "user" | "assistant"; content: string };
 type Session = {
@@ -53,7 +57,7 @@ async function saveSession(phone: string, state: Record<string, unknown>, messag
     .upsert({ phone, state, messages: trimmed, updated_at: new Date().toISOString() }, { onConflict: "phone" });
 }
 
-// ─── cardápio numerado ────────────────────────────────────────────
+// ─── cardápio ─────────────────────────────────────────────────────
 type MenuItem = {
   name: string;
   category_id: string;
@@ -65,30 +69,55 @@ type MenuItem = {
   kind: string;
 };
 
+const SALGADAS_IDS = ["classicas", "favoritas-da-casa", "especiais"];
+
 async function getMenuItems(): Promise<MenuItem[]> {
   const { data, error } = await supabaseAdmin
     .from("menu_items")
     .select("name, category_id, price, price_media, price_grande, description, options, is_active, kind")
     .eq("is_active", true)
     .order("sort_order");
-
   if (error) { console.error("[chatbot] getMenuItems error:", error); return []; }
   return (data ?? []) as MenuItem[];
 }
 
-function buildNumberedMenu(items: MenuItem[]): string {
-  const nonBordas = items.filter((i) => i.category_id !== "bordas");
-  if (!nonBordas.length) return "Cardápio indisponível no momento.";
+function buildCategoryMenu(): string {
+  return `1. 🍕 Pizzas Salgadas\n2. 🍫 Pizzas Doces\n3. 🥗 Entradas\n4. 🥤 Bebidas`;
+}
 
-  return nonBordas.map((item, i) => {
+function buildCategoryItems(items: MenuItem[], categoryNum: number): string {
+  let filtered: MenuItem[];
+  switch (categoryNum) {
+    case 1: filtered = items.filter((i) => SALGADAS_IDS.includes(i.category_id)); break;
+    case 2: filtered = items.filter((i) => i.category_id === "doces"); break;
+    case 3: filtered = items.filter((i) => i.category_id === "entradas"); break;
+    case 4: filtered = items.filter((i) => i.category_id === "bebidas"); break;
+    default: return "Categoria inválida.";
+  }
+  if (!filtered.length) return "Nenhum item disponível nesta categoria.";
+
+  return filtered.map((item, i) => {
     const num = i + 1;
     if (item.price_media && item.price_grande) {
-      return `${num}. ${item.name} — Média R$${Number(item.price_media).toFixed(2)} / Grande R$${Number(item.price_grande).toFixed(2)}${item.description ? `\n   ${item.description}` : ""}`;
+      return `${num}. ${item.name} — Méd R$${Number(item.price_media).toFixed(2)} / Grd R$${Number(item.price_grande).toFixed(2)}`;
     }
     if (item.options) {
       return `${num}. ${item.name} — R$${Number(item.price).toFixed(2)} (${item.options})`;
     }
-    return `${num}. ${item.name} — R$${Number(item.price).toFixed(2)}${item.description ? ` — ${item.description}` : ""}`;
+    return `${num}. ${item.name} — R$${Number(item.price).toFixed(2)}`;
+  }).join("\n");
+}
+
+function buildFullMenuForClaude(items: MenuItem[]): string {
+  const nonBordas = items.filter((i) => i.category_id !== "bordas");
+  return nonBordas.map((item) => {
+    if (item.price_media && item.price_grande) {
+      return `- ${item.name} [${item.category_id}]: Média R$${Number(item.price_media).toFixed(2)} / Grande R$${Number(item.price_grande).toFixed(2)}${item.description ? ` (${item.description})` : ""}`;
+    }
+    if (item.options) {
+      return `- ${item.name} [${item.category_id}]: R$${Number(item.price).toFixed(2)} (opções: ${item.options})`;
+    }
+    return `- ${item.name} [${item.category_id}]: R$${Number(item.price).toFixed(2)}${item.description ? ` (${item.description})` : ""}`;
   }).join("\n");
 }
 
@@ -118,7 +147,6 @@ async function getDeliveryFee(neighborhood: string): Promise<{ fee: number; time
     .from("delivery_zones")
     .select("delivery_fee, estimated_time, neighborhood")
     .eq("active", true);
-
   if (!data) return null;
   const match = data.find((z) => normalize(z.neighborhood) === norm);
   if (!match) return null;
@@ -137,103 +165,134 @@ async function lookupCep(cep: string): Promise<{ bairro: string; logradouro: str
   } catch { return null; }
 }
 
-// ─── criar pedido ─────────────────────────────────────────────────
-async function createOrder(orderData: Record<string, unknown>): Promise<string | null> {
+// ─── criar pedido como pendente (aguardando pagamento) ────────────
+async function createPendingOrder(orderData: Record<string, unknown>): Promise<string | null> {
   const { data, error } = await supabaseAdmin
     .from("orders")
-    .insert(orderData)
+    .insert({ ...orderData, status: "pendente" })
     .select("id")
     .single();
   if (error) { console.error("[chatbot] createOrder error:", error); return null; }
   return data.id;
 }
 
+// ─── gerar PIX via Mercado Pago ───────────────────────────────────
+async function createPixPayment(orderId: string, total: number, customerName: string): Promise<{ qrCode: string; paymentId: string } | null> {
+  try {
+    const result = await mpPayment.create({
+      body: {
+        transaction_amount: total,
+        payment_method_id: "pix",
+        description: "Pedido Basílico Pizzas",
+        external_reference: orderId,
+        payer: {
+          email: "cliente@basilicopizzas.com.br",
+          first_name: customerName.split(" ")[0],
+          last_name: customerName.split(" ").slice(1).join(" ") || customerName,
+        },
+      },
+    });
+
+    const qrCode = result.point_of_interaction?.transaction_data?.qr_code;
+    if (!qrCode) return null;
+
+    await supabaseAdmin.from("orders").update({ payment_id: String(result.id) }).eq("id", orderId);
+    return { qrCode, paymentId: String(result.id) };
+  } catch (err) {
+    console.error("[chatbot] createPixPayment error:", err);
+    return null;
+  }
+}
+
 // ─── system prompt ────────────────────────────────────────────────
 function buildSystemPrompt(
-  numberedMenu: string,
+  fullMenu: string,
   bordas: string,
-  sessionState: Record<string, unknown>,
+  state: Record<string, unknown>,
   customerInfo: string | null,
 ): string {
-  const cepConfirmed = sessionState.cep_confirmed === true;
-  const neighborhood = sessionState.neighborhood as string | undefined;
-  const frete = sessionState.frete as number | undefined;
-  const freteTime = sessionState.frete_time as string | undefined;
-  const address = sessionState.address as string | undefined;
-  const cep = sessionState.cep as string | undefined;
+  const cepConfirmed = state.cep_confirmed === true;
+  const neighborhood = state.neighborhood as string | undefined;
+  const frete = state.frete as number | undefined;
+  const freteTime = state.frete_time as string | undefined;
+  const address = state.address as string | undefined;
+  const cep = state.cep as string | undefined;
 
   let addressContext = "";
   if (cepConfirmed && neighborhood) {
-    addressContext = `\nENDEREÇO CONFIRMADO: Bairro ${neighborhood}, CEP ${cep ?? "?"}, Rua ${address ?? "?"}\nFrete: R$${frete?.toFixed(2) ?? "?"} (${freteTime ?? "?"})\n`;
+    addressContext = `\nENDEREÇO CONFIRMADO: Bairro ${neighborhood}, CEP ${cep}, Rua ${address ?? "?"}\nFrete: R$${frete?.toFixed(2)} (${freteTime})\n`;
   }
 
-  const isFirstMessage = !sessionState.greeted;
+  const isFirstMessage = !state.greeted;
 
   let firstInstruction = "";
   if (isFirstMessage) {
     firstInstruction = `
-ATENÇÃO — PRIMEIRA MENSAGEM:
-O cliente AINDA NÃO informou o CEP. Cumprimente-o, apresente brevemente a Basílico Pizzas e peça o CEP para verificar se entregamos na região dele. NÃO mostre o cardápio ainda.
-Exemplo: "Olá! 🍕 Bem-vindo à Basílico Pizzas! Para começarmos, me diz seu CEP que verifico se entregamos na sua região."
-EXCEÇÃO: Se o cliente já mencionou itens específicos do cardápio (ex: "quero uma calabresa grande"), reconheça o pedido, mas ainda peça o CEP primeiro antes de continuar.
+PRIMEIRA MENSAGEM — peça o CEP:
+"Olá! 🍕 Bem-vindo à Basílico Pizzas! Para começar, me diz seu CEP que verifico se realizamos entregas na sua região."
+Se o cliente já mencionou itens, reconheça mas ainda peça o CEP primeiro.
 `;
   }
 
   let cepPendingInstruction = "";
   if (!isFirstMessage && !cepConfirmed) {
     cepPendingInstruction = `
-O CEP AINDA NÃO FOI CONFIRMADO. O cliente pode estar informando o CEP agora. Se a mensagem contiver 8 dígitos numéricos (com ou sem hífen), trate como CEP. Caso contrário, peça o CEP novamente educadamente.
-Quando o sistema confirmar o bairro (você verá nos dados da sessão), aí sim mostre o cardápio.
+CEP AINDA NÃO CONFIRMADO. Se a mensagem tem 8 dígitos, trate como CEP. Senão, peça novamente.
 `;
   }
 
   let menuInstruction = "";
   if (cepConfirmed) {
     menuInstruction = `
-O cardápio está numerado. O cliente pode digitar o NÚMERO do item ou descrever o que quer em linguagem natural (ex: "quero o 3 grande" ou "quero uma calabresa grande com borda de chocolate").
-Se o cliente mencionar itens diretamente sem ver o cardápio, identifique os itens pelo nome, monte o pedido e confirme com ele.
+CARDÁPIO POR CATEGORIAS — O cliente vê 4 categorias e escolhe uma. Depois vê os itens numerados (SEM descrição).
+Se o cliente perguntar ingredientes de um item, mostre a descrição DAQUELE item específico.
+Se o cliente mencionar um item diretamente pelo nome, identifique-o e prossiga sem forçar o menu.
+
+As 4 categorias:
+1. Pizzas Salgadas (Clássicas + Favoritas da Casa + Especiais)
+2. Pizzas Doces
+3. Entradas
+4. Bebidas
 `;
   }
 
-  return `Você é o atendente virtual da Basílico Pizzas, uma pizzaria artesanal premium em João Pessoa/PB.
-Seu tom é amigável, simpático e eficiente. Use emojis com moderação (máximo 2-3 por mensagem). Seja direto.
-Conversa via WhatsApp.
+  return `Você é o atendente virtual da Basílico Pizzas, pizzaria artesanal premium em João Pessoa/PB.
+Tom amigável, simpático, eficiente. Máximo 2-3 emojis por mensagem. Direto ao ponto.
+Conversa via WhatsApp — texto simples, SEM markdown (nada de **, ##, -, etc.).
 ${firstInstruction}${cepPendingInstruction}${menuInstruction}
 REGRAS:
-- Responda SEMPRE em português brasileiro
-- NÃO use markdown (sem **, ##, etc.). Use texto simples.
-- Respostas curtas (máximo 4 parágrafos)
-- Se quiser falar com humano: (83) 99322-8832 ou @basilicopizzas no Instagram
-- Endereço: Av. Bananeiras, 190, Manaíra, João Pessoa/PB
+- Português brasileiro sempre
+- Respostas curtas (máx 4 parágrafos)
+- Falar com humano: (83) 99322-8832 ou @basilicopizzas
+- Endereço: Av. Bananeiras, 190, Manaíra, JP/PB
 - Horário: Seg-Qui 17h-22h, Sex-Dom 17h-23h
 ${addressContext}
 ${customerInfo ? `CLIENTE RECORRENTE:\n${customerInfo}\n` : ""}
 
-CARDÁPIO NUMERADO:
-${numberedMenu}
+CARDÁPIO COMPLETO (referência interna — NÃO mostre tudo de uma vez):
+${fullMenu}
 
 BORDAS RECHEADAS:
 ${bordas}
 
-FLUXO (seja flexível — se o cliente pular etapas, acompanhe):
-1. Pedir CEP → verificar bairro → confirmar frete
-2. Mostrar cardápio numerado
-3. Cliente escolhe item (número ou texto livre) → perguntar tamanho se for pizza
-4. Perguntar meio a meio (S/N) → se sim, mostrar sabores
-5. Perguntar borda recheada (S/N)
-6. Perguntar se quer mais algo
-7. Mostrar RESUMO com todos os itens + frete + total
-8. Pedir nome (se não tiver)
-9. Pedir número da casa e complemento (se não tiver)
-10. Perguntar pagamento: PIX ou Cartão
-11. Confirmar pedido
+FLUXO:
+1. Pedir CEP → confirmar bairro/frete
+2. Mostrar 4 categorias
+3. Cliente escolhe categoria → mostrar itens numerados (nome + preço, SEM descrição)
+4. Cliente escolhe item → tamanho (Média/Grande) se pizza
+5. Meio a meio? → borda recheada?
+6. Mais alguma coisa?
+7. Resumo + frete + total
+8. Nome (se não tiver) + número da casa + complemento
+9. Pagamento: PIX ou Cartão
+10. Confirmar
 
-PEDIDO DIRETO: Se o cliente já disse o que quer na mensagem (ex: "quero uma calabresa grande e uma coca"), pule direto para o resumo após confirmar CEP/endereço. Não force o fluxo completo.
+PEDIDO DIRETO: se o cliente já falou o que quer, pule para o resumo após CEP/endereço.
 
-QUANDO FINALIZAR, inclua na última linha:
-##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande ou null","borda":"nome ou null","option":"sabor bebida ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":null}##END_ORDER##
+QUANDO CONFIRMAR O PEDIDO, inclua na ÚLTIMA linha:
+##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande ou null","borda":"nome ou null","option":"sabor ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":null}##END_ORDER##
 
-Preços: use unitPrice do tamanho escolhido. Meio a meio = preço da pizza mais cara. Só emita JSON com TODOS os dados completos e confirmação do cliente.`;
+unitPrice = preço do tamanho. Meio a meio = preço da mais cara. Só emita JSON com dados completos + confirmação.`;
 }
 
 // ─── Claude ───────────────────────────────────────────────────────
@@ -245,12 +304,7 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
       "x-api-key": ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages,
-    }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 1500, system: systemPrompt, messages }),
   });
 
   if (!res.ok) {
@@ -263,14 +317,16 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
   return data.content?.[0]?.text ?? "Desculpe, não consegui processar sua mensagem.";
 }
 
-// ─── processar pedido do JSON ─────────────────────────────────────
-async function processOrderFromResponse(response: string, phone: string): Promise<{ orderId: string; cleanResponse: string } | null> {
+// ─── processar pedido + pagamento ─────────────────────────────────
+async function processOrderFromResponse(response: string, phone: string): Promise<{ finalMessage: string } | null> {
   const match = response.match(/##ORDER_JSON##([\s\S]*?)##END_ORDER##/);
   if (!match) return null;
 
   try {
     const order = JSON.parse(match[1].trim());
-    const orderId = await createOrder({
+    const cleanResponse = response.replace(/##ORDER_JSON##[\s\S]*?##END_ORDER##/, "").trim();
+
+    const orderId = await createPendingOrder({
       customer_name: order.customer_name,
       customer_phone: phone,
       address: order.address,
@@ -284,11 +340,11 @@ async function processOrderFromResponse(response: string, phone: string): Promis
       total: order.total,
       payment_method: order.payment_method,
       notes: order.notes || null,
-      status: "recebido",
     });
 
     if (!orderId) return null;
 
+    // Upsert customer
     const digits = phone.replace(/\D/g, "");
     const cleanPhone = digits.startsWith("55") ? digits.slice(2) : digits;
     await supabaseAdmin.from("customers").upsert(
@@ -304,8 +360,19 @@ async function processOrderFromResponse(response: string, phone: string): Promis
       { onConflict: "phone" }
     );
 
-    const cleanResponse = response.replace(/##ORDER_JSON##[\s\S]*?##END_ORDER##/, "").trim();
-    return { orderId, cleanResponse };
+    if (order.payment_method === "pix") {
+      const pix = await createPixPayment(orderId, order.total, order.customer_name);
+      if (pix) {
+        const finalMessage = `${cleanResponse}\n\n💰 PIX Copia e Cola:\n\n${pix.qrCode}\n\nCopie o código acima e cole no app do seu banco. Após o pagamento, seu pedido será confirmado automaticamente!\n\n📦 Acompanhe: ${SITE_URL}/pedido/${orderId}`;
+        return { finalMessage };
+      }
+      return { finalMessage: `${cleanResponse}\n\nOcorreu um erro ao gerar o PIX. Entre em contato: (83) 99322-8832.` };
+    }
+
+    // Cartão — envia link de pagamento
+    const paymentUrl = `${SITE_URL}/pedido/${orderId}/pagamento`;
+    const finalMessage = `${cleanResponse}\n\n💳 Finalize o pagamento com cartão:\n${paymentUrl}\n\nApós a aprovação, seu pedido será confirmado automaticamente!\n\n📦 Acompanhe: ${SITE_URL}/pedido/${orderId}`;
+    return { finalMessage };
   } catch (e) {
     console.error("[chatbot] Failed to parse order JSON:", e);
     return null;
@@ -319,7 +386,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
 
   session.messages.push({ role: "user", content: text });
 
-  // --- Passo intermediário: verificar CEP se ainda não confirmado ---
+  // --- CEP não confirmado: verificar se o texto contém CEP ---
   if (!state.cep_confirmed) {
     const cepMatch = text.match(/\d{5}[-.\s]?\d{3}/);
     if (cepMatch) {
@@ -336,27 +403,16 @@ export async function handleIncomingMessage(phone: string, text: string) {
           state.address = via.logradouro;
           state.greeted = true;
 
-          // Busca o cardápio para incluir na mensagem de confirmação
-          const menuItems = await getMenuItems();
-          const numberedMenu = buildNumberedMenu(menuItems);
+          const categories = buildCategoryMenu();
+          const msg = `CEP ${cepDigits} confirmado! ✅\nBairro: ${frete.matchedName}\nRua: ${via.logradouro}\nFrete: R$${frete.fee.toFixed(2)} (${frete.time})\n\nÓtimo, entregamos na sua região! 🎉\n\nEscolha a categoria do cardápio:\n\n${categories}\n\nDigite o número da categoria!`;
 
-          // Injeta uma mensagem de sistema informando o resultado do CEP
-          session.messages.push({
-            role: "assistant",
-            content: `CEP ${cepDigits} confirmado! Bairro: ${frete.matchedName}. Rua: ${via.logradouro}. Frete: R$${frete.fee.toFixed(2)} (${frete.time}).\n\nAgora vou mostrar nosso cardápio:\n\n${numberedMenu}\n\nQual item te interessa? Pode digitar o número ou me dizer o que quer!`,
-          });
-
+          session.messages.push({ role: "assistant", content: msg });
           await saveSession(phone, state, session.messages);
-          const chunks = splitMessage(session.messages[session.messages.length - 1].content);
-          for (const chunk of chunks) {
-            await sendWhatsappText(phone, chunk);
-            if (chunks.length > 1) await delay(800);
-          }
+          await sendWhatsappText(phone, msg);
           return;
         } else {
-          // Bairro não atendido
           state.greeted = true;
-          const msg = `Poxa, infelizmente ainda não entregamos no bairro "${via.bairro}" (${via.localidade}). 😢\n\nNosso delivery cobre bairros de João Pessoa e região. Você pode tentar outro endereço ou fazer a retirada no balcão: Av. Bananeiras, 190, Manaíra.\n\nQualquer dúvida: (83) 99322-8832`;
+          const msg = `Poxa, infelizmente ainda não entregamos no bairro "${via.bairro}" (${via.localidade}). 😢\n\nVocê pode tentar outro endereço ou retirar no balcão:\nAv. Bananeiras, 190, Manaíra.\n\n(83) 99322-8832`;
           session.messages.push({ role: "assistant", content: msg });
           await saveSession(phone, state, session.messages);
           await sendWhatsappText(phone, msg);
@@ -371,25 +427,61 @@ export async function handleIncomingMessage(phone: string, text: string) {
         return;
       }
     }
+
+    // Sem CEP na mensagem — se for primeira msg, pedir CEP
+    if (!state.greeted) {
+      state.greeted = true;
+      const msg = "Olá! 🍕 Bem-vindo à Basílico Pizzas, pizzaria artesanal com massa de fermentação natural de 48h!\n\nPara começar, me diz seu CEP que verifico se realizamos entregas na sua região.";
+      session.messages.push({ role: "assistant", content: msg });
+      await saveSession(phone, state, session.messages);
+      await sendWhatsappText(phone, msg);
+      return;
+    }
+
+    // Já foi saudado mas não mandou CEP
+    const msg = "Para continuar, preciso do seu CEP para verificar se realizamos entregas na sua região. 📍\n\nDigite o CEP no formato 00000-000.";
+    session.messages.push({ role: "assistant", content: msg });
+    await saveSession(phone, state, session.messages);
+    await sendWhatsappText(phone, msg);
+    return;
   }
 
-  // --- Busca dados ---
+  // --- CEP confirmado: verificar se escolheu categoria ---
+  if (state.cep_confirmed && !state.category_shown) {
+    const catNum = parseInt(text.trim());
+    if (catNum >= 1 && catNum <= 4) {
+      const menuItems = await getMenuItems();
+      const itemsList = buildCategoryItems(menuItems, catNum);
+      const catNames = ["Pizzas Salgadas", "Pizzas Doces", "Entradas", "Bebidas"];
+      state.category_shown = true;
+      state.current_category = catNum;
+
+      const msg = `${catNames[catNum - 1]}:\n\n${itemsList}\n\nDigite o número do item ou me diga o que deseja!`;
+      session.messages.push({ role: "assistant", content: msg });
+      await saveSession(phone, state, session.messages);
+      await sendWhatsappText(phone, msg);
+      return;
+    }
+    // Se não é número de categoria, deixa o Claude processar (pode ser pedido direto)
+  }
+
+  // --- Conversa normal com Claude ---
   const [menuItems, customer] = await Promise.all([
     getMenuItems(),
     getCustomerByPhone(phone),
   ]);
 
-  const numberedMenu = buildNumberedMenu(menuItems);
+  const fullMenu = buildFullMenuForClaude(menuItems);
   const bordas = buildBordasList(menuItems);
 
   const customerInfo = customer
     ? `Nome: ${customer.name}\nTelefone: ${customer.phone}\nEndereço: ${customer.address}, ${customer.number}\nBairro: ${customer.neighborhood}\nCEP: ${customer.cep}\nComplemento: ${customer.complement || "N/A"}`
     : null;
 
-  // Marca como saudado
   if (!state.greeted) state.greeted = true;
+  if (!state.category_shown) state.category_shown = true;
 
-  const systemPrompt = buildSystemPrompt(numberedMenu, bordas, state, customerInfo);
+  const systemPrompt = buildSystemPrompt(fullMenu, bordas, state, customerInfo);
   const response = await callClaude(systemPrompt, session.messages);
 
   // Verifica pedido finalizado
@@ -397,8 +489,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
 
   let finalResponse: string;
   if (orderResult) {
-    const trackingUrl = `${SITE_URL}/pedido/${orderResult.orderId}`;
-    finalResponse = orderResult.cleanResponse + `\n\n📦 Acompanhe seu pedido: ${trackingUrl}`;
+    finalResponse = orderResult.finalMessage;
     await saveSession(phone, {}, []);
   } else {
     finalResponse = response;
