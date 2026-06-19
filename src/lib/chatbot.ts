@@ -275,19 +275,24 @@ ${fullMenu}
 BORDAS RECHEADAS:
 ${bordas}
 
-FLUXO:
+FLUXO OBRIGATÓRIO (siga CADA passo, NÃO pule nenhum):
 1. Pedir CEP → confirmar bairro/frete
 2. Mostrar 4 categorias
 3. Cliente escolhe categoria → mostrar itens numerados (nome + preço, SEM descrição)
-4. Cliente escolhe item → tamanho (Média/Grande) se pizza
-5. Meio a meio? → borda recheada?
-6. Mais alguma coisa?
-7. Resumo + frete + total
-8. Nome (se não tiver) + número da casa + complemento
-9. Pagamento: PIX ou Cartão
-10. Confirmar
+4. Cliente escolhe pizza → perguntar tamanho (Média/Grande)
+5. OBRIGATÓRIO: "Quer adicionar borda recheada? (S/N)" → se S, mostrar as opções de borda com preço
+6. OBRIGATÓRIO: "Quer meio a meio com outro sabor? (S/N)" → se S, mostrar sabores disponíveis
+7. OBRIGATÓRIO: "Quer adicionar mais uma pizza? (S/N)" → se S, voltar às categorias
+8. OBRIGATÓRIO: "Quer adicionar uma bebida? (S/N)" → se S, mostrar bebidas
+9. OBRIGATÓRIO: "Quer uma Pizza Nutella Individual de sobremesa por R$25,99? (S/N)"
+10. Mostrar RESUMO completo com todos os itens + frete + total
+11. Pedir nome + número da casa + complemento (se não tiver)
+12. Pagamento: PIX ou Cartão
+13. Confirmar pedido
 
-PEDIDO DIRETO: se o cliente já falou o que quer, pule para o resumo após CEP/endereço.
+IMPORTANTE: as perguntas 5 a 9 são OBRIGATÓRIAS. Faça UMA pergunta por mensagem, espere a resposta, depois faça a próxima. NÃO pule nenhuma mesmo que o cliente pareça com pressa.
+
+PEDIDO DIRETO: se o cliente já mencionou itens na conversa, identifique-os mas AINDA faça as perguntas de upsell (borda, meio a meio, mais pizza, bebida, Nutella) antes de ir pro resumo.
 
 QUANDO CONFIRMAR O PEDIDO, inclua na ÚLTIMA linha:
 ##ORDER_JSON##{"customer_name":"...","customer_phone":"...","address":"...","address_number":"...","neighborhood":"...","complement":"...","cep":"...","items":[{"name":"...","size":"Média ou Grande ou null","borda":"nome ou null","option":"sabor ou null","qty":1,"unitPrice":0.00,"bordaPrice":0.00}],"subtotal":0.00,"delivery_fee":0.00,"total":0.00,"payment_method":"pix ou card","notes":null}##END_ORDER##
@@ -318,7 +323,7 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
 }
 
 // ─── processar pedido + pagamento ─────────────────────────────────
-async function processOrderFromResponse(response: string, phone: string): Promise<{ finalMessage: string } | null> {
+async function processOrderFromResponse(response: string, phone: string): Promise<{ finalMessage: string; orderId: string } | null> {
   const match = response.match(/##ORDER_JSON##([\s\S]*?)##END_ORDER##/);
   if (!match) return null;
 
@@ -364,15 +369,15 @@ async function processOrderFromResponse(response: string, phone: string): Promis
       const pix = await createPixPayment(orderId, order.total, order.customer_name);
       if (pix) {
         const finalMessage = `${cleanResponse}\n\n💰 PIX Copia e Cola:\n\n${pix.qrCode}\n\nCopie o código acima e cole no app do seu banco. Após o pagamento, seu pedido será confirmado automaticamente!\n\n📦 Acompanhe: ${SITE_URL}/pedido/${orderId}`;
-        return { finalMessage };
+        return { finalMessage, orderId };
       }
-      return { finalMessage: `${cleanResponse}\n\nOcorreu um erro ao gerar o PIX. Entre em contato: (83) 99322-8832.` };
+      return { finalMessage: `${cleanResponse}\n\nOcorreu um erro ao gerar o PIX. Entre em contato: (83) 99322-8832.`, orderId };
     }
 
     // Cartão — envia link de pagamento
     const paymentUrl = `${SITE_URL}/pedido/${orderId}/pagamento`;
     const finalMessage = `${cleanResponse}\n\n💳 Finalize o pagamento com cartão:\n${paymentUrl}\n\nApós a aprovação, seu pedido será confirmado automaticamente!\n\n📦 Acompanhe: ${SITE_URL}/pedido/${orderId}`;
-    return { finalMessage };
+    return { finalMessage, orderId };
   } catch (e) {
     console.error("[chatbot] Failed to parse order JSON:", e);
     return null;
@@ -465,6 +470,60 @@ export async function handleIncomingMessage(phone: string, text: string) {
     // Se não é número de categoria, deixa o Claude processar (pode ser pedido direto)
   }
 
+  // --- Pedido já criado: verificar se quer trocar pagamento ---
+  if (state.order_completed && state.pending_order_id) {
+    const orderId = state.pending_order_id as string;
+    const lower = normalize(text);
+    const wantsCard = lower.includes("cartao") || lower.includes("cartão") || lower.includes("credito") || lower.includes("debito") || lower.includes("card");
+    const wantsPix = lower.includes("pix") || lower.includes("copia e cola");
+
+    if (wantsCard) {
+      // Verificar se o pedido ainda está pendente
+      const { data: order } = await supabaseAdmin.from("orders").select("status, total").eq("id", orderId).single();
+      if (order && order.status === "pendente") {
+        await supabaseAdmin.from("orders").update({ payment_method: "card" }).eq("id", orderId);
+        const paymentUrl = `${SITE_URL}/pedido/${orderId}/pagamento`;
+        const msg = `Sem problema! 💳 Mudei para pagamento com cartão.\n\nFinalize aqui:\n${paymentUrl}\n\nApós a aprovação, seu pedido será confirmado automaticamente!`;
+        session.messages.push({ role: "assistant", content: msg });
+        await saveSession(phone, state, session.messages);
+        await sendWhatsappText(phone, msg);
+        return;
+      }
+    }
+
+    if (wantsPix) {
+      const { data: order } = await supabaseAdmin.from("orders").select("status, total, customer_name").eq("id", orderId).single();
+      if (order && order.status === "pendente") {
+        await supabaseAdmin.from("orders").update({ payment_method: "pix" }).eq("id", orderId);
+        const pix = await createPixPayment(orderId, Number(order.total), order.customer_name);
+        if (pix) {
+          const msg = `Sem problema! 💰 Mudei para PIX.\n\nCopia e Cola:\n\n${pix.qrCode}\n\nCole no app do seu banco. Após o pagamento, seu pedido será confirmado automaticamente!`;
+          session.messages.push({ role: "assistant", content: msg });
+          await saveSession(phone, state, session.messages);
+          await sendWhatsappText(phone, msg);
+          return;
+        }
+      }
+    }
+
+    // Verificar se pedido já foi pago — se sim, resetar sessão
+    const { data: order } = await supabaseAdmin.from("orders").select("status").eq("id", orderId).single();
+    if (order && order.status !== "pendente") {
+      // Pedido já processado, resetar
+      await saveSession(phone, {}, []);
+      const msg = "Seu pedido já foi confirmado! 🎉\n\nSe quiser fazer um novo pedido, é só mandar uma mensagem.";
+      await sendWhatsappText(phone, msg);
+      return;
+    }
+
+    // Outra mensagem com pedido pendente — responder sobre o pedido
+    const msg = `Seu pedido está aguardando pagamento. 📋\n\nPara pagar com PIX, já enviei o código acima.\nPara pagar com cartão, digite "quero cartão".\n\nPrecisa de mais alguma coisa?`;
+    session.messages.push({ role: "assistant", content: msg });
+    await saveSession(phone, state, session.messages);
+    await sendWhatsappText(phone, msg);
+    return;
+  }
+
   // --- Conversa normal com Claude ---
   const [menuItems, customer] = await Promise.all([
     getMenuItems(),
@@ -490,7 +549,11 @@ export async function handleIncomingMessage(phone: string, text: string) {
   let finalResponse: string;
   if (orderResult) {
     finalResponse = orderResult.finalMessage;
-    await saveSession(phone, {}, []);
+    // Salva orderId no state para permitir troca de pagamento (PIX→Cartão)
+    state.pending_order_id = orderResult.orderId;
+    state.order_completed = true;
+    session.messages.push({ role: "assistant", content: finalResponse });
+    await saveSession(phone, state, session.messages);
   } else {
     finalResponse = response;
     session.messages.push({ role: "assistant", content: response });
