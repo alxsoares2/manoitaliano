@@ -140,6 +140,32 @@ async function getCustomerByPhone(phone: string): Promise<Record<string, unknown
   return data as Record<string, unknown> | null;
 }
 
+// ─── último pedido do cliente ──────────────────────────────────────
+async function getLastOrder(phone: string): Promise<Record<string, unknown> | null> {
+  const digits = phone.replace(/\D/g, "");
+  const search = digits.startsWith("55") ? digits.slice(2) : digits;
+  const { data } = await supabaseAdmin
+    .from("orders")
+    .select("*")
+    .or(`customer_phone.like.%${search}%`)
+    .not("status", "eq", "cancelado")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  return data as Record<string, unknown> | null;
+}
+
+function formatLastOrderSummary(order: Record<string, unknown>): string {
+  const items = order.items as { name: string; qty: number; size?: string; unitPrice: number; bordaPrice?: number }[];
+  const lines = items.map((i) => {
+    let desc = `${i.qty}x ${i.name}`;
+    if (i.size) desc += ` (${i.size})`;
+    return desc;
+  });
+  const total = Number(order.total).toFixed(2).replace(".", ",");
+  return `${lines.join(", ")} — R$${total}`;
+}
+
 // ─── frete ────────────────────────────────────────────────────────
 async function getDeliveryFee(neighborhood: string): Promise<{ fee: number; time: string; matchedName: string } | null> {
   const norm = normalize(neighborhood);
@@ -411,6 +437,26 @@ export async function handleIncomingMessage(phone: string, text: string) {
           state.address = via.logradouro;
           state.greeted = true;
 
+          // Verificar se é cliente recorrente com pedidos anteriores
+          const [customer, lastOrder] = await Promise.all([
+            getCustomerByPhone(phone),
+            getLastOrder(phone),
+          ]);
+
+          if (customer && lastOrder) {
+            const firstName = String(customer.name ?? "").split(" ")[0];
+            const orderSummary = formatLastOrderSummary(lastOrder);
+            state.last_order = lastOrder;
+            state.customer_data = customer;
+
+            const msg = `CEP ${cepDigits} confirmado! ✅\nBairro: ${frete.matchedName}\nFrete: R$${frete.fee.toFixed(2)} (${frete.time})\n\nOlá ${firstName}, que bom ter você de volta! 🎉\n\nSeu último pedido foi:\n${orderSummary}\n\nDeseja repetir o mesmo pedido? (S/N)`;
+
+            session.messages.push({ role: "assistant", content: msg });
+            await saveSession(phone, state, session.messages);
+            await sendWhatsappText(phone, msg);
+            return;
+          }
+
           const categories = buildCategoryMenu();
           const msg = `CEP ${cepDigits} confirmado! ✅\nBairro: ${frete.matchedName}\nRua: ${via.logradouro}\nFrete: R$${frete.fee.toFixed(2)} (${frete.time})\n\nÓtimo, entregamos na sua região! 🎉\n\nEscolha a categoria do cardápio:\n\n${categories}\n\nDigite o número da categoria!`;
 
@@ -452,6 +498,52 @@ export async function handleIncomingMessage(phone: string, text: string) {
     await saveSession(phone, state, session.messages);
     await sendWhatsappText(phone, msg);
     return;
+  }
+
+  // --- Cliente recorrente: verificar resposta "repetir pedido?" ---
+  if (state.cep_confirmed && state.last_order && !state.repeat_answered) {
+    const lower = normalize(text);
+    const yes = lower === "s" || lower === "sim" || lower.includes("sim") || lower.includes("mesmo") || lower.includes("repet");
+
+    state.repeat_answered = true;
+
+    if (yes) {
+      // Repetir último pedido — pular para Claude com contexto de repetição
+      const lastOrder = state.last_order as Record<string, unknown>;
+      const customer = state.customer_data as Record<string, unknown>;
+      state.category_shown = true;
+
+      // Injetar contexto para o Claude montar o resumo e pedir pagamento
+      const repeatInfo = `O cliente quer REPETIR o último pedido. Dados do pedido anterior:
+Itens: ${JSON.stringify(lastOrder.items)}
+Subtotal: R$${Number(lastOrder.subtotal ?? lastOrder.total).toFixed(2)}
+Frete: R$${Number(state.frete).toFixed(2)}
+Total anterior: R$${Number(lastOrder.total).toFixed(2)}
+Cliente: ${customer.name}
+Endereço: ${customer.address}, ${customer.number}
+Bairro: ${state.neighborhood}
+CEP: ${state.cep}
+Complemento: ${customer.complement || "N/A"}
+
+Mostre o resumo do pedido repetido, confirme o endereço (já tem os dados acima), calcule o total (itens + frete atual R$${Number(state.frete).toFixed(2)}) e pergunte a forma de pagamento (PIX ou Cartão). NÃO faça perguntas de upsell — o cliente quer repetir exatamente o mesmo.`;
+
+      session.messages.push({ role: "user", content: `Sim, quero repetir o mesmo pedido. ${repeatInfo}` });
+      // Remove a msg real do user e usa a enriquecida
+      session.messages = session.messages.filter((m) => m.content !== text);
+
+      await saveSession(phone, state, session.messages);
+      // Não retorna — cai no fluxo do Claude abaixo
+    } else {
+      // Não quer repetir — mostrar categorias
+      delete state.last_order;
+      delete state.customer_data;
+      const categories = buildCategoryMenu();
+      const msg = `Sem problema! 😊\n\nEscolha a categoria do cardápio:\n\n${categories}\n\nDigite o número da categoria!`;
+      session.messages.push({ role: "assistant", content: msg });
+      await saveSession(phone, state, session.messages);
+      await sendWhatsappText(phone, msg);
+      return;
+    }
   }
 
   // --- CEP confirmado: verificar se escolheu categoria ---
