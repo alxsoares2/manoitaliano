@@ -35,10 +35,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Processa em background para responder rápido ao webhook
-    handleIncomingMessage(senderDigits, text).catch((err) =>
-      console.error("[webhook] handleIncomingMessage error:", err)
-    );
+    // Deve ser await — no Vercel Serverless, fire-and-forget é encerrado antes de completar
+    try {
+      await handleIncomingMessage(senderDigits, text);
+    } catch (err) {
+      console.error("[webhook] handleIncomingMessage error:", err);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
