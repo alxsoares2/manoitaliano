@@ -83,25 +83,20 @@ export async function GET(request: Request) {
 
   const fmt = (v: number) => v.toFixed(2).replace(".", ",");
 
+  const sep = "➖➖➖➖➖➖➖➖➖➖";
   const msg = [
     "📊 RELATÓRIO DO DIA — Basílico Pizzas",
-    "",
     `Data: ${dateStr}`,
-    "",
+    sep,
     `🍕 Pedidos: ${totalPedidos}`,
-    "",
     `💰 Faturamento: R$${fmt(faturamento)}`,
-    "",
     `🎯 Ticket médio: R$${fmt(ticketMedio)}`,
-    "",
-    `⭐ Item mais vendido: ${topItem} (${topQty}x)`,
-    "",
-    `📱 Pedidos pelo site: ${siteOrders.length}`,
-    "",
-    `💬 Pedidos pelo WhatsApp: ${whatsappOrders}`,
-    "",
+    `⭐ Mais vendido: ${topItem} (${topQty}x)`,
+    sep,
+    `📱 Site: ${siteOrders.length} pedidos`,
+    `💬 WhatsApp: ${whatsappOrders} pedidos`,
+    sep,
     `✅ Pagos: ${pagos}`,
-    "",
     `❌ Cancelados: ${cancelled.length}`,
   ].join("\n");
 
