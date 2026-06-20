@@ -292,7 +292,7 @@ As 4 categorias:
 `;
   }
 
-  return `Você é o atendente virtual da Basílico Pizzas, pizzaria artesanal premium em João Pessoa/PB.
+  return `Você é o atendente virtual da Basílico Pizzas, pizzaria artesanal em João Pessoa/PB.
 Tom amigável, simpático, eficiente. Máximo 2-3 emojis por mensagem. Direto ao ponto.
 Conversa via WhatsApp — texto simples, SEM markdown (nada de **, ##, -, etc.).
 ${firstInstruction}${cepPendingInstruction}${menuInstruction}
@@ -500,7 +500,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
     // Sem CEP na mensagem — se for primeira msg, pedir CEP
     if (!state.greeted) {
       state.greeted = true;
-      const msg = "Olá! 🍕 Bem-vindo à Basílico Pizzas, pizzaria artesanal com massa de fermentação natural de 48h!\n\nPara começar, me diz seu CEP que verifico se realizamos entregas na sua região.";
+      const msg = "Olá! 🍕 Bem-vindo à Basílico Pizzas, pizzaria artesanal em João Pessoa!\n\nPara começar, me diz seu CEP que verifico se realizamos entregas na sua região.";
       session.messages.push({ role: "assistant", content: msg });
       await saveSession(phone, state, session.messages);
       await sendWhatsappText(phone, msg);
