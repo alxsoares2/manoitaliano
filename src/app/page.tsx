@@ -165,9 +165,9 @@ function HomeContent() {
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Nossa massa</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Delivery</h3>
               <p className="text-sm leading-relaxed text-foreground">
-                Fermentação natural de 48h, ingredientes frescos e selecionados.
+                Peça pelo site ou WhatsApp com entrega rápida em João Pessoa.
               </p>
             </div>
             <div className="flex flex-col gap-2">
