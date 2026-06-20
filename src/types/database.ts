@@ -36,6 +36,7 @@ export type OrderRecord = {
   coupon_code?: string | null;
   cep?: string | null;
   notes?: string | null;
+  order_number?: number | null;
 };
 
 export type OrderInsert = Omit<OrderRecord, "id" | "created_at" | "status"> & {

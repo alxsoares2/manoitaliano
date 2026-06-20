@@ -20,8 +20,9 @@ export default function OrderCard({
 
   const isDelivered = order.status === "entregue";
   const isCancelled = order.status === "cancelado";
+  const isRecebido = order.status === "recebido";
   const upcoming = nextStatus(order.status);
-  const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const orderNumber = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
   const time = new Date(order.created_at).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -41,7 +42,7 @@ export default function OrderCard({
   return (
     <div
       className={`rounded-xl border bg-background-elevated shadow-sm transition ${
-        isCancelled ? "border-red-200 opacity-50" : isDelivered ? "border-border opacity-60" : "border-border"
+        isCancelled ? "border-red-200 opacity-50" : isDelivered ? "border-border opacity-60" : isRecebido ? "border-gold animate-pulse" : "border-border"
       }`}
     >
       {/* Header compacto — sempre visível */}
@@ -51,7 +52,7 @@ export default function OrderCard({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground">#{orderNumber}</span>
+            <span className="text-sm font-bold text-foreground">{orderNumber}</span>
             <span className="text-sm text-foreground">{order.customer_name}</span>
           </div>
           <div className="mt-0.5 flex items-center gap-3 text-xs text-muted">

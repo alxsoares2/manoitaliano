@@ -68,7 +68,7 @@ export default function OrderTrackingPage() {
     );
   }
 
-  const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const orderNumber = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
   const isCancelled = order.status === "cancelado";
   const isPending = order.status === "pendente";
   const currentIndex = TRACKING_STEPS.findIndex((s) => s.status === order.status);
@@ -81,7 +81,7 @@ export default function OrderTrackingPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Basílico Pizzas" className="h-10 w-auto object-contain" />
           <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-            Pedido #{orderNumber}
+            Pedido {orderNumber}
           </span>
         </div>
       </header>

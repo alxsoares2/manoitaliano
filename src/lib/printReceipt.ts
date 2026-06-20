@@ -1,191 +1,118 @@
 import { OrderRecord } from "@/types/database";
 import { formatPrice } from "./format";
 
+function esc(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 export function buildReceiptHtml(order: OrderRecord): string {
-  const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const orderNum = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
   const dateTime = new Date(order.created_at).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
+  const channel = order.payment_method ? "Site" : "WhatsApp";
+
   const addressLines = [
-    `${order.address}, ${order.address_number}`,
-    order.neighborhood,
-    order.complement || null,
-    order.reference ? `Ref: ${order.reference}` : null,
-  ]
-    .filter(Boolean)
-    .join("<br>");
+    `${esc(order.address)}, ${esc(order.address_number)}`,
+    order.complement ? esc(order.complement) : null,
+    esc(order.neighborhood),
+    order.reference ? `Ref: ${esc(order.reference)}` : null,
+    order.cep ? `CEP: ${order.cep}` : null,
+  ].filter(Boolean).join("<br>");
 
-  const itemsHtml = order.items
-    .map((item) => {
-      const details = [
-        item.size ? `Tam: ${item.size}` : null,
-        item.option || null,
-        item.borda ? `Borda: ${item.borda}` : null,
-      ]
-        .filter(Boolean)
-        .join(" — ");
+  const itemsHtml = order.items.map((item) => {
+    const price = (item.unitPrice + (item.bordaPrice ?? 0)) * item.qty;
+    let desc = `${item.qty}x ${esc(item.name)}`;
+    if (item.size) desc += ` (${item.size})`;
+    if (item.option) desc += ` — ${esc(item.option)}`;
+    if (item.borda) desc += `<br><span class="detail">+ Borda ${esc(item.borda)}</span>`;
+    return `<div class="item"><div class="item-row"><span>${desc}</span><span>${formatPrice(price)}</span></div></div>`;
+  }).join("");
 
-      return `
-        <div class="item">
-          <div class="item-line">
-            <span>${item.qty}x ${escapeHtml(item.name)}</span>
-            <span>${formatPrice((item.unitPrice + (item.bordaPrice ?? 0)) * item.qty)}</span>
-          </div>
-          ${details ? `<div class="item-details">${escapeHtml(details)}</div>` : ""}
-        </div>
-      `;
-    })
-    .join("");
+  const paymentLabel = order.payment_method === "pix" ? "PIX — JÁ PAGO" : order.payment_method === "card" ? "CARTÃO — JÁ PAGO" : "A DEFINIR";
 
-  const html = `
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-      <head>
-        <meta charset="utf-8" />
-        <title>Comanda #${orderNumber}</title>
-        <style>
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
-          * {
-            box-sizing: border-box;
-          }
-          body {
-            width: 80mm;
-            margin: 0;
-            padding: 8px;
-            font-family: "Courier New", monospace;
-            font-size: 16px;
-            line-height: 1.4;
-            color: #000;
-            background: #fff;
-          }
-          h1 {
-            font-size: 20px;
-            text-align: center;
-            margin: 0 0 4px;
-          }
-          .center {
-            text-align: center;
-          }
-          .meta {
-            margin-bottom: 8px;
-          }
-          .row {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-          }
-          hr {
-            border: none;
-            border-top: 2px dashed #000;
-            margin: 8px 0;
-          }
-          .item {
-            margin-bottom: 6px;
-          }
-          .item-line {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-          }
-          .item-details {
-            font-size: 14px;
-            padding-left: 12px;
-          }
-          .sub {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-          }
-          .total {
-            display: flex;
-            justify-content: space-between;
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 8px;
-          }
-          .obs-title {
-            font-weight: bold;
-            font-size: 15px;
-            margin-bottom: 2px;
-          }
-          .obs {
-            font-size: 16px;
-            font-weight: bold;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Basílico Pizzas</h1>
-        <div class="center meta">Pedido #${orderNumber}<br>${dateTime}</div>
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<title>Comanda ${orderNum}</title>
+<style>
+@page { size: 80mm auto; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 80mm; max-width: 80mm; font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.4; color: #000; background: #fff; padding: 4mm 3mm 6mm; }
+.order-num { background: #000; color: #fff; text-align: center; padding: 6mm 2mm; margin: 0 -3mm; font-size: 36px; font-weight: bold; letter-spacing: 2px; }
+.brand { text-align: center; font-size: 14px; font-weight: bold; margin-top: 3mm; }
+.brand-sub { text-align: center; font-size: 10px; margin-bottom: 2mm; }
+hr { border: none; border-top: 2px dashed #000; margin: 3mm 0; }
+.meta { font-size: 11px; }
+.meta span { font-weight: bold; }
+.section-title { font-size: 14px; font-weight: bold; text-align: center; letter-spacing: 1px; margin: 2mm 0; }
+.item { margin-bottom: 2mm; }
+.item-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
+.detail { font-size: 11px; font-weight: normal; padding-left: 3mm; }
+.obs-bar { background: #000; color: #fff; padding: 2mm 3mm; margin: 2mm -3mm; font-size: 14px; font-weight: bold; }
+.total-row { display: flex; justify-content: space-between; font-size: 13px; }
+.total-final { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-top: 2mm; }
+.payment { text-align: center; font-size: 13px; font-weight: bold; margin-top: 2mm; }
+@media print { body { width: 80mm; max-width: 80mm; } }
+</style>
+</head>
+<body>
 
-        <div class="row"><span>Cliente:</span></div>
-        <div>${escapeHtml(order.customer_name)}</div>
+<div class="order-num">${orderNum}</div>
+<p class="brand">BASÍLICO PIZZAS</p>
+<p class="brand-sub">Delivery</p>
 
-        <div class="row"><span>Telefone:</span></div>
-        <div>${escapeHtml(order.customer_phone)}</div>
+<hr>
 
-        <div class="row"><span>Endereço:</span></div>
-        <div>${addressLines}</div>
+<div class="meta">
+<p><span>Data:</span> ${dateTime}</p>
+<p><span>Canal:</span> ${channel}</p>
+</div>
 
-        <hr>
+<hr>
 
-        ${itemsHtml}
+<div class="meta">
+<p><span>Cliente:</span> ${esc(order.customer_name)}</p>
+<p><span>Telefone:</span> ${esc(order.customer_phone)}</p>
+<p><span>Endereço:</span><br>${addressLines}</p>
+</div>
 
-        <hr>
+<hr>
 
-        ${
-          order.discount && Number(order.discount) > 0
-            ? `<div class="sub"><span>Subtotal</span><span>${formatPrice(Number(order.subtotal ?? order.total))}</span></div>
-               <div class="sub"><span>Desconto${order.coupon_code ? ` (${escapeHtml(order.coupon_code)})` : ""}</span><span>-${formatPrice(Number(order.discount))}</span></div>`
-            : ""
-        }
-        ${
-          order.delivery_fee && Number(order.delivery_fee) > 0
-            ? `<div class="sub"><span>Frete</span><span>${formatPrice(Number(order.delivery_fee))}</span></div>`
-            : ""
-        }
-        <div class="total"><span>Total</span><span>${formatPrice(order.total)}</span></div>
+<p class="section-title">ITENS DO PEDIDO</p>
 
-        ${
-          order.notes && order.notes.trim()
-            ? `<hr><div class="obs-title">OBSERVAÇÕES</div><div class="obs">${escapeHtml(order.notes)}</div>`
-            : ""
-        }
+${itemsHtml}
 
-        <hr>
-      </body>
-    </html>
-  `;
+${order.notes && order.notes.trim() ? `<div class="obs-bar">OBS: ${esc(order.notes)}</div>` : ""}
 
-  return html;
+<hr>
+
+${order.subtotal && order.discount && Number(order.discount) > 0 ? `
+<div class="total-row"><span>Subtotal</span><span>${formatPrice(Number(order.subtotal))}</span></div>
+<div class="total-row"><span>Desconto${order.coupon_code ? ` (${esc(order.coupon_code)})` : ""}</span><span>-${formatPrice(Number(order.discount))}</span></div>
+` : ""}
+${order.delivery_fee && Number(order.delivery_fee) > 0 ? `<div class="total-row"><span>Frete</span><span>${formatPrice(Number(order.delivery_fee))}</span></div>` : ""}
+<div class="total-final"><span>TOTAL</span><span>${formatPrice(order.total)}</span></div>
+
+<hr>
+
+<p class="payment">PAGAMENTO: ${paymentLabel}</p>
+
+<hr>
+
+<script>window.onload = function() { window.focus(); window.print(); }<\/script>
+</body>
+</html>`;
 }
 
-export function printOrderReceipt(order: OrderRecord) {
-  const printWindow = window.open("", "_blank", "width=320,height=600");
-  if (!printWindow) return;
-
-  printWindow.document.open();
-  printWindow.document.write(buildReceiptHtml(order));
-  printWindow.document.close();
-
-  printWindow.onload = () => {
-    printWindow.focus();
-    printWindow.print();
-  };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+export function printOrderReceipt(order: OrderRecord, copies = 1) {
+  for (let i = 0; i < copies; i++) {
+    const w = window.open("", "_blank", "width=340,height=700");
+    if (!w) return;
+    w.document.open();
+    w.document.write(buildReceiptHtml(order));
+    w.document.close();
+  }
 }
