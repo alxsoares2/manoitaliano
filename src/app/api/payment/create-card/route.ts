@@ -107,6 +107,8 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     const detail = err instanceof Error ? err.message : JSON.stringify(err);
     console.error("MP card error:", detail);
+    const { sendGroupAlert } = await import("@/lib/alertGroup");
+    sendGroupAlert(detail, "/api/payment/create-card", "Verificar credenciais do Mercado Pago").catch(() => {});
     return NextResponse.json({ error: "Erro ao processar cartão. Tente novamente.", detail }, { status: 502 });
   }
 }

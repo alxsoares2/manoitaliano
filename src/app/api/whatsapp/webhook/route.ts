@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { handleIncomingMessage } from "@/lib/chatbot";
+import { sendGroupAlert } from "@/lib/alertGroup";
 
 const BOT_PHONE = process.env.ZAPI_BOT_PHONE ?? "5583993228832";
 
@@ -47,11 +48,21 @@ export async function POST(request: Request) {
       await handleIncomingMessage(senderDigits, text);
     } catch (err) {
       console.error("[webhook] handleIncomingMessage error:", err);
+      sendGroupAlert(
+        String(err instanceof Error ? err.message : err),
+        "/api/whatsapp/webhook",
+        "Verificar logs do Vercel e reiniciar se necessário"
+      ).catch(() => {});
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[webhook] Error:", err);
+    sendGroupAlert(
+      String(err instanceof Error ? err.message : err),
+      "/api/whatsapp/webhook (parse)",
+      "Verificar formato do payload da Z-API"
+    ).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 }

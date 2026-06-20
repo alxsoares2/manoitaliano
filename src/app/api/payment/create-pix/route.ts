@@ -102,6 +102,12 @@ export async function POST(request: Request) {
     // Clean up pending order if MP fails
     await supabase.from("orders").delete().eq("id", order.id);
     console.error("MP PIX error:", err);
+    const { sendGroupAlert } = await import("@/lib/alertGroup");
+    sendGroupAlert(
+      String(err instanceof Error ? err.message : err),
+      "/api/payment/create-pix",
+      "Verificar credenciais do Mercado Pago e saldo da conta"
+    ).catch(() => {});
     return NextResponse.json({ error: "Erro ao gerar PIX. Tente novamente." }, { status: 502 });
   }
 }

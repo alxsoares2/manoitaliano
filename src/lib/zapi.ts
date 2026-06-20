@@ -23,8 +23,22 @@ export async function sendWhatsappText(phone: string, message: string): Promise<
       headers,
       body: JSON.stringify({ phone: formatPhoneForWhatsapp(phone), message }),
     });
+    if (!res.ok) {
+      const { sendGroupAlert } = await import("@/lib/alertGroup");
+      sendGroupAlert(
+        `Z-API retornou ${res.status} ao enviar para ${phone.slice(-4)}`,
+        "Z-API sendWhatsappText",
+        "Verificar instância Z-API e conexão do WhatsApp"
+      ).catch(() => {});
+    }
     return res.ok;
-  } catch {
+  } catch (err) {
+    const { sendGroupAlert } = await import("@/lib/alertGroup");
+    sendGroupAlert(
+      String(err instanceof Error ? err.message : err),
+      "Z-API sendWhatsappText",
+      "Verificar instância Z-API e conexão do WhatsApp"
+    ).catch(() => {});
     return false;
   }
 }

@@ -55,6 +55,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 422 });
   } catch (err) {
     console.error("pay-order error:", err);
+    const { sendGroupAlert } = await import("@/lib/alertGroup");
+    sendGroupAlert(
+      String(err instanceof Error ? err.message : err),
+      "/api/payment/pay-order",
+      "Verificar credenciais do Mercado Pago e dados do cartão"
+    ).catch(() => {});
     return NextResponse.json({ error: "Erro ao processar cartão." }, { status: 502 });
   }
 }

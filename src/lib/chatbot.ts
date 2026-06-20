@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWhatsappText, SITE_URL } from "@/lib/zapi";
+import { sendGroupAlert } from "@/lib/alertGroup";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
@@ -77,7 +78,11 @@ async function getMenuItems(): Promise<MenuItem[]> {
     .select("name, category_id, price, price_media, price_grande, description, options, is_active, kind")
     .eq("is_active", true)
     .order("sort_order");
-  if (error) { console.error("[chatbot] getMenuItems error:", error); return []; }
+  if (error) {
+    console.error("[chatbot] getMenuItems error:", error);
+    sendGroupAlert(error.message, "Supabase menu_items", "Verificar conexão com Supabase e estrutura da tabela menu_items").catch(() => {});
+    return [];
+  }
   return (data ?? []) as MenuItem[];
 }
 
@@ -226,6 +231,11 @@ async function createPixPayment(orderId: string, total: number, customerName: st
     return { qrCode, paymentId: String(result.id) };
   } catch (err) {
     console.error("[chatbot] createPixPayment error:", err);
+    sendGroupAlert(
+      String(err instanceof Error ? err.message : err),
+      "Mercado Pago PIX",
+      "Verificar credenciais do Mercado Pago e saldo da conta"
+    ).catch(() => {});
     return null;
   }
 }
@@ -344,6 +354,11 @@ async function callClaude(systemPrompt: string, messages: Message[]): Promise<st
   if (!res.ok) {
     const err = await res.text();
     console.error("[chatbot] Claude API error:", res.status, err);
+    sendGroupAlert(
+      `Status ${res.status}: ${err.slice(0, 200)}`,
+      "Claude API (chatbot)",
+      "Verificar ANTHROPIC_API_KEY e saldo da conta Anthropic"
+    ).catch(() => {});
     return "Desculpe, estou com dificuldade técnica. Tente novamente ou ligue (83) 99322-8832.";
   }
 
