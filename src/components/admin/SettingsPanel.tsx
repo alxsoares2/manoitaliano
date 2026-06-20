@@ -16,6 +16,11 @@ export default function SettingsPanel() {
   const [hours, setHours] = useState<BusinessHour[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Partial<BusinessHour>>>({});
   const [manuallyClosed, setManuallyClosed] = useState(false);
+  const [waitActive, setWaitActive] = useState(false);
+  const [waitMin, setWaitMin] = useState("60");
+  const [waitMax, setWaitMax] = useState("70");
+  const [waitDirty, setWaitDirty] = useState(false);
+  const [savingWait, setSavingWait] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingToggle, setSavingToggle] = useState(false);
@@ -28,7 +33,12 @@ export default function SettingsPanel() {
       fetch("/api/admin/store-settings").then((r) => r.json()),
     ]);
     setHours(hoursRes.hours ?? []);
-    setManuallyClosed(settingsRes.settings?.manually_closed === "true");
+    const s = settingsRes.settings ?? {};
+    setManuallyClosed(s.manually_closed === "true");
+    setWaitActive(s.wait_time_active === "true");
+    setWaitMin(s.wait_time_min || "60");
+    setWaitMax(s.wait_time_max || "70");
+    setWaitDirty(false);
     setDrafts({});
     setLoading(false);
   };
@@ -178,6 +188,85 @@ export default function SettingsPanel() {
               );
             })}
           </div>
+        )}
+      </div>
+      {/* Tempo de espera */}
+      <div className="rounded-2xl border border-border bg-background-elevated p-5">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-foreground">Tempo de Espera</h3>
+            <p className="mt-0.5 text-sm text-muted">
+              Exibe um banner no site com o tempo estimado de entrega.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              const next = !waitActive;
+              setWaitActive(next);
+              await fetch("/api/admin/store-settings", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wait_time_active: String(next) }),
+              });
+            }}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+              waitActive ? "bg-amber-500" : "bg-border"
+            }`}
+          >
+            <span
+              className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition duration-200 ${
+                waitActive ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {waitActive && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted">De</label>
+              <input
+                type="number"
+                min="1"
+                value={waitMin}
+                onChange={(e) => { setWaitMin(e.target.value); setWaitDirty(true); }}
+                className={`${inp} w-20`}
+              />
+              <label className="text-sm text-muted">até</label>
+              <input
+                type="number"
+                min="1"
+                value={waitMax}
+                onChange={(e) => { setWaitMax(e.target.value); setWaitDirty(true); }}
+                className={`${inp} w-20`}
+              />
+              <span className="text-sm text-muted">min</span>
+            </div>
+            {waitDirty && (
+              <button
+                onClick={async () => {
+                  setSavingWait(true);
+                  await fetch("/api/admin/store-settings", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ wait_time_min: waitMin, wait_time_max: waitMax }),
+                  });
+                  setSavingWait(false);
+                  setWaitDirty(false);
+                }}
+                disabled={savingWait}
+                className="rounded-lg bg-gold px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {savingWait ? "Salvando…" : "Salvar"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {waitActive && (
+          <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+            ⏱ Banner ativo no site: "{waitMin}-{waitMax} min"
+          </p>
         )}
       </div>
     </div>

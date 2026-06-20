@@ -35,9 +35,13 @@ export async function GET() {
   ]);
 
   const manuallyClosed = settings?.find((s) => s.key === "manually_closed")?.value === "true";
+  const waitActive = settings?.find((s) => s.key === "wait_time_active")?.value === "true";
+  const waitMin = settings?.find((s) => s.key === "wait_time_min")?.value ?? null;
+  const waitMax = settings?.find((s) => s.key === "wait_time_max")?.value ?? null;
+  const waitTime = waitActive && waitMin && waitMax ? { min: Number(waitMin), max: Number(waitMax) } : null;
 
   if (manuallyClosed) {
-    return NextResponse.json({ open: false, manually_closed: true, next_open: null });
+    return NextResponse.json({ open: false, manually_closed: true, next_open: null, wait_time: null });
   }
 
   const todayHours = hours?.find((h) => h.day_of_week === nowDay && h.active);
@@ -51,5 +55,5 @@ export async function GET() {
 
   const nextOpen = isOpen ? null : nextOpenText(hours ?? [], nowDay, nowMinutes);
 
-  return NextResponse.json({ open: isOpen, manually_closed: false, next_open: nextOpen });
+  return NextResponse.json({ open: isOpen, manually_closed: false, next_open: nextOpen, wait_time: waitTime });
 }
