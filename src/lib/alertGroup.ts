@@ -1,7 +1,7 @@
 const ZAPI_INSTANCE_ID = process.env.ZAPI_INSTANCE_ID!;
 const ZAPI_TOKEN = process.env.ZAPI_TOKEN!;
 const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN;
-const GROUP_ID = "120363144139588563@g.us";
+const GROUP_ID = "120363144139588563-group";
 
 let lastAlertKey = "";
 let lastAlertTime = 0;
