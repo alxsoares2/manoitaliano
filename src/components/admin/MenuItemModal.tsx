@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { MENU_CATEGORIES } from "@/data/menuCategories";
 import { MenuItemKind, MenuItemRecord } from "@/types/menuItem";
+
+type CategoryOption = { id: string; title: string };
 
 type FormState = {
   name: string;
@@ -22,7 +23,7 @@ function toFormState(item: MenuItemRecord | null): FormState {
     return {
       name: "",
       description: "",
-      category_id: MENU_CATEGORIES[0].id,
+      category_id: "",
       kind: "pizza",
       price: "",
       price_media: "",
@@ -47,12 +48,18 @@ function toFormState(item: MenuItemRecord | null): FormState {
 
 export default function MenuItemModal({
   item,
+  categories = [],
   onClose,
 }: {
   item: MenuItemRecord | null;
+  categories?: CategoryOption[];
   onClose: () => void;
 }) {
-  const [form, setForm] = useState<FormState>(toFormState(item));
+  const [form, setForm] = useState<FormState>(() => {
+    const state = toFormState(item);
+    if (!state.category_id && categories.length > 0) state.category_id = categories[0].id;
+    return state;
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -163,7 +170,7 @@ export default function MenuItemModal({
                 onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-gold"
               >
-                {MENU_CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.title}
                   </option>

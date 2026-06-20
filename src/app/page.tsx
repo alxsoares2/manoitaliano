@@ -10,29 +10,31 @@ import StoreStatusBanner from "@/components/StoreStatusBanner";
 import { StoreStatusProvider, useStoreStatus } from "@/context/StoreStatusContext";
 import { supabase } from "@/lib/supabase";
 import { MenuItemRecord } from "@/types/menuItem";
-import { groupActiveItemsByCategory } from "@/lib/menuItems";
+import { groupActiveItemsByCategory, MenuCategory } from "@/lib/menuItems";
 
 function HomeContent() {
   const [items, setItems] = useState<MenuItemRecord[]>([]);
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const viewContentFired = useRef(false);
 
   useEffect(() => {
     let active = true;
 
-    supabase
-      .from("menu_items")
-      .select("*")
-      .then(({ data }) => {
-        if (active && data) {
-          setItems(data as MenuItemRecord[]);
-          if (!viewContentFired.current) {
-            viewContentFired.current = true;
-            pixel.viewContent("Cardápio Basílico Pizzas");
-          }
+    Promise.all([
+      supabase.from("menu_items").select("*"),
+      supabase.from("menu_categories").select("*").order("sort_order"),
+    ]).then(([itemsRes, catsRes]) => {
+      if (active && itemsRes.data) {
+        setItems(itemsRes.data as MenuItemRecord[]);
+        if (!viewContentFired.current) {
+          viewContentFired.current = true;
+          pixel.viewContent("Cardápio Basílico Pizzas");
         }
-        if (active) setLoading(false);
-      });
+      }
+      if (active && catsRes.data) setCategories(catsRes.data as MenuCategory[]);
+      if (active) setLoading(false);
+    });
 
     const channel = supabase
       .channel("menu-items-changes")
@@ -40,12 +42,9 @@ function HomeContent() {
         "postgres_changes",
         { event: "*", schema: "public", table: "menu_items" },
         () => {
-          supabase
-            .from("menu_items")
-            .select("*")
-            .then(({ data }) => {
-              if (active && data) setItems(data as MenuItemRecord[]);
-            });
+          supabase.from("menu_items").select("*").then(({ data }) => {
+            if (active && data) setItems(data as MenuItemRecord[]);
+          });
         }
       )
       .subscribe();
@@ -56,7 +55,7 @@ function HomeContent() {
     };
   }, []);
 
-  const menu = groupActiveItemsByCategory(items);
+  const menu = groupActiveItemsByCategory(items, categories);
   const allPizzas = menu.flatMap((c) => c.items.filter((i) => i.kind === "pizza")) as import("@/types/menu").PizzaItem[];
 
   const { open, loading: statusLoading } = useStoreStatus();
