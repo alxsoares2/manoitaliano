@@ -153,7 +153,7 @@ function HomeContent() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Basílico Pizzas" className="h-16 w-auto object-contain opacity-80" />
             <p className="max-w-sm text-sm leading-relaxed text-muted">
-              Pizzas artesanais com massa de longa fermentação natural — 48 horas de maturação para garantir leveza e sabor autêntico.
+              Pizzaria artesanal em João Pessoa — peça pelo delivery!
             </p>
           </div>
 
