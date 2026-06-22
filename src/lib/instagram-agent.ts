@@ -113,6 +113,7 @@ FORMATO DA RESPOSTA (JSON exato):
 // ─── Etapa 3: Gerar legendas ──────────────────────────────────────
 type Post = {
   foto: string;
+  foto_url?: string;
   sabor_identificado: string;
   legenda: string;
   hashtags: string;
