@@ -8,9 +8,18 @@ const PHOTO_BUCKET = "instagram-posts";
 const VIDEO_BUCKET = "instagram-videos";
 const ROUTE_SECRET = process.env.REPORT_SECRET ?? "basilico-report-2025";
 
-// 7 posts por semana: 5 fotos + 2 vídeos (intercalados a cada 3 fotos)
-const PHOTOS_PER_BATCH = 5;
-const VIDEOS_PER_BATCH = 2;
+// Agenda: dia da semana → tipo de post
+// 4 = quinta, 5 = sexta, 6 = sábado, 0 = domingo
+const SCHEDULE: Record<number, "foto" | "video"> = {
+  4: "foto",   // Quinta 19h → foto
+  5: "foto",   // Sexta 19h → foto
+  6: "video",  // Sábado 19h → reel
+  0: "foto",   // Domingo 19h → foto
+};
+
+const DAY_NAMES: Record<number, string> = {
+  0: "Domingo", 4: "Quinta", 5: "Sexta", 6: "Sábado",
+};
 
 type PostResult = {
   arquivo: string;
@@ -39,13 +48,10 @@ async function saveUsed(key: string, used: string[]) {
   await supabaseAdmin.from("store_settings").upsert({ key, value: JSON.stringify(used) }, { onConflict: "key" });
 }
 
-function pickNext(all: string[], used: string[], count: number): string[] {
+function pickNext(all: string[], used: string[]): string | null {
   let available = all.filter((f) => !used.includes(f));
-  if (available.length === 0) {
-    // Recomeça
-    available = all;
-  }
-  return available.slice(0, count);
+  if (available.length === 0) available = all; // recomeça
+  return available[0] ?? null;
 }
 
 // ─── Buscar cardápio e montar prompt ──────────────────────────────
@@ -80,7 +86,7 @@ REGRAS:
 JSON: {"sabor":"...","legenda":"...(máx 2200 chars)","hashtags":"#hash1 #hash2 ...(20-25, incluir #basilicopizzas)"}`;
 }
 
-// ─── Gerar legenda para FOTO (com visão) ──────────────────────────
+// ─── Gerar legenda para FOTO ──────────────────────────────────────
 async function generatePhotoCaption(fotoUrl: string, systemPrompt: string): Promise<{ sabor: string; legenda: string; hashtags: string }> {
   const imgRes = await fetch(fotoUrl);
   const buffer = await imgRes.arrayBuffer();
@@ -107,7 +113,7 @@ async function generatePhotoCaption(fotoUrl: string, systemPrompt: string): Prom
   return { sabor: parsed.sabor ?? "?", legenda: parsed.legenda, hashtags };
 }
 
-// ─── Gerar legenda para VÍDEO (sem visão, usa nome do arquivo) ───
+// ─── Gerar legenda para VÍDEO ─────────────────────────────────────
 async function generateVideoCaption(fileName: string, systemPrompt: string): Promise<{ sabor: string; legenda: string; hashtags: string }> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -152,79 +158,72 @@ export async function POST(request: Request) {
   const secret = searchParams.get("secret");
   if (secret !== ROUTE_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Dia da semana em Brasília
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Recife" }));
+  const dayOfWeek = now.getDay();
+  const forceDay = searchParams.get("dia"); // permite forçar: ?dia=6 (sábado)
+  const targetDay = forceDay !== null ? parseInt(forceDay) : dayOfWeek;
+
+  const tipo = SCHEDULE[targetDay];
+  if (!tipo) {
+    return NextResponse.json({
+      ok: false,
+      message: `Hoje é ${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][targetDay]} — sem postagem programada. Posts apenas Qui, Sex, Sáb e Dom.`,
+      dia: targetDay,
+    });
+  }
+
   try {
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const systemPrompt = await buildSystemPrompt();
 
-    // Listar fotos e vídeos disponíveis
-    const allPhotos = await listBucket(PHOTO_BUCKET, /\.(png|jpe?g)$/i);
-    const allVideos = await listBucket(VIDEO_BUCKET, /\.(mov|mp4|webm)$/i);
+    const bucket = tipo === "foto" ? PHOTO_BUCKET : VIDEO_BUCKET;
+    const usedKey = tipo === "foto" ? "instagram_used_photos" : "instagram_used_videos";
+    const extPattern = tipo === "foto" ? /\.(png|jpe?g)$/i : /\.(mov|mp4|webm)$/i;
 
-    const usedPhotos = await getUsed("instagram_used_photos");
-    const usedVideos = await getUsed("instagram_used_videos");
-
-    const photosBatch = pickNext(allPhotos, usedPhotos, PHOTOS_PER_BATCH);
-    const videosBatch = pickNext(allVideos, usedVideos, VIDEOS_PER_BATCH);
-
-    // Intercalar: foto, foto, foto, VIDEO, foto, foto, VIDEO
-    const schedule: { file: string; tipo: "foto" | "video"; bucket: string }[] = [];
-    let pi = 0, vi = 0;
-    for (let day = 0; day < 7; day++) {
-      if ((day === 3 || day === 6) && vi < videosBatch.length) {
-        schedule.push({ file: videosBatch[vi++], tipo: "video", bucket: VIDEO_BUCKET });
-      } else if (pi < photosBatch.length) {
-        schedule.push({ file: photosBatch[pi++], tipo: "foto", bucket: PHOTO_BUCKET });
-      } else if (vi < videosBatch.length) {
-        schedule.push({ file: videosBatch[vi++], tipo: "video", bucket: VIDEO_BUCKET });
-      }
+    const allFiles = await listBucket(bucket, extPattern);
+    if (allFiles.length === 0) {
+      return NextResponse.json({ error: `Nenhum ${tipo === "foto" ? "foto" : "vídeo"} no bucket` }, { status: 404 });
     }
 
-    const results: PostResult[] = [];
+    let used = await getUsed(usedKey);
+    const file = pickNext(allFiles, used);
+    if (!file) return NextResponse.json({ error: "Nenhum arquivo disponível" }, { status: 404 });
 
-    for (const item of schedule) {
-      const url = `${SUPABASE_URL}/storage/v1/object/public/${item.bucket}/${encodeURIComponent(item.file)}`;
-      try {
-        let caption: { sabor: string; legenda: string; hashtags: string };
-        if (item.tipo === "foto") {
-          caption = await generatePhotoCaption(url, systemPrompt);
-        } else {
-          caption = await generateVideoCaption(item.file, systemPrompt);
-        }
+    // Se recomeçou o ciclo, resetar usados
+    if (!allFiles.some((f) => !used.includes(f))) used = [];
 
-        const result: PostResult = {
-          arquivo: item.file, tipo: item.tipo, url,
-          sabor: caption.sabor, legenda: caption.legenda, hashtags: caption.hashtags,
-        };
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeURIComponent(file)}`;
 
-        const sent = await sendToMake(result);
-        results.push(result);
-        console.log(`✅ ${item.tipo} ${item.file} → ${caption.sabor} ${sent ? "(Make OK)" : "(Make falhou)"}`);
-      } catch (err) {
-        console.error(`❌ ${item.file}: ${err instanceof Error ? err.message : err}`);
-        results.push({ arquivo: item.file, tipo: item.tipo, url, sabor: "ERRO", legenda: "", hashtags: "" });
-      }
-      await new Promise((r) => setTimeout(r, 1500));
-    }
-
-    // Salvar usados
-    const newUsedPhotos = [...usedPhotos, ...photosBatch];
-    const newUsedVideos = [...usedVideos, ...videosBatch];
-    // Se resetou, salvar só o batch
-    if (photosBatch.length > 0 && !usedPhotos.some((u) => u === photosBatch[0])) {
-      await saveUsed("instagram_used_photos", allPhotos.filter((f) => !photosBatch.includes(f)).length === 0 ? photosBatch : newUsedPhotos);
+    let caption: { sabor: string; legenda: string; hashtags: string };
+    if (tipo === "foto") {
+      caption = await generatePhotoCaption(url, systemPrompt);
     } else {
-      await saveUsed("instagram_used_photos", newUsedPhotos);
+      caption = await generateVideoCaption(file, systemPrompt);
     }
-    if (videosBatch.length > 0) {
-      await saveUsed("instagram_used_videos", allVideos.filter((f) => !usedVideos.includes(f)).length === 0 ? videosBatch : newUsedVideos);
-    }
+
+    const result: PostResult = {
+      arquivo: file, tipo, url,
+      sabor: caption.sabor, legenda: caption.legenda, hashtags: caption.hashtags,
+    };
+
+    const sent = await sendToMake(result);
+
+    // Marcar como usado
+    used.push(file);
+    await saveUsed(usedKey, used);
 
     return NextResponse.json({
       ok: true,
-      processados: results.length,
-      fotos: { usadas: newUsedPhotos.length, total: allPhotos.length },
-      videos: { usadas: newUsedVideos.length, total: allVideos.length },
-      schedule: results.map((r) => ({ tipo: r.tipo, arquivo: r.arquivo, sabor: r.sabor, url: r.url })),
+      dia: DAY_NAMES[targetDay],
+      tipo,
+      arquivo: file,
+      sabor: caption.sabor,
+      url,
+      make_enviado: sent,
+      usados: used.length,
+      total: allFiles.length,
+      restantes: allFiles.length - used.length,
     });
   } catch (err) {
     console.error("[instagram/rodar] Error:", err);
