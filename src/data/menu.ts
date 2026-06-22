@@ -81,14 +81,14 @@ export const menu: MenuCategory[] = [
         kind: "pizza",
         name: "Calabresa",
         description:
-          "Molho de tomate artesanal, mozzarella, calabresa fatiada, cebola, azeitona preta e orégano",
+          "Molho de tomate artesanal, mozzarella, calabresa fatiada, cebola e orégano",
         prices: { media: 58, grande: 68 },
       },
       {
         id: "mozzarella",
         kind: "pizza",
         name: "Mozzarella",
-        description: "Molho de tomate artesanal, mozzarella, azeitona preta e orégano",
+        description: "Molho de tomate artesanal, mozzarella e orégano",
         prices: { media: 52, grande: 62 },
       },
       {
@@ -96,7 +96,7 @@ export const menu: MenuCategory[] = [
         kind: "pizza",
         name: "Frango com Requeijão",
         description:
-          "Molho de tomate artesanal, mozzarella, frango desfiado, requeijão cremoso, azeitona preta e orégano",
+          "Molho de tomate artesanal, mozzarella, frango desfiado, requeijão cremoso e orégano",
         prices: { media: 58, grande: 68 },
       },
       {
@@ -133,7 +133,7 @@ export const menu: MenuCategory[] = [
         kind: "pizza",
         name: "Lombo com Requeijão",
         description:
-          "Molho de tomate artesanal, mozzarella, lombo canadense, requeijão, azeitona preta e orégano",
+          "Molho de tomate artesanal, mozzarella, lombo canadense, requeijão e orégano",
         prices: { media: 59, grande: 69 },
       },
       {
@@ -175,7 +175,7 @@ export const menu: MenuCategory[] = [
         kind: "pizza",
         name: "Imperiale",
         description:
-          "Molho de tomate artesanal, mozzarella, peito de peru, cebola, champignon, provolone, azeitona preta e orégano",
+          "Molho de tomate artesanal, mozzarella, peito de peru, cebola, champignon, provolone e orégano",
         prices: { media: 60, grande: 70 },
       },
       {
