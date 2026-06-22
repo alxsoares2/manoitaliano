@@ -3,7 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const MODEL = "claude-sonnet-4-6";
-const MAKE_WEBHOOK_URL = "https://hook.us2.make.com/gmkdnx0e899t36u30pei2c1vusay2eb8";
+const MAKE_WEBHOOK_FOTOS = "https://hook.us2.make.com/gmkdnx0e899t36u30pei2c1vusay2eb8";
+const MAKE_WEBHOOK_REELS = "https://hook.us2.make.com/4qtrgj4lt8em5usi23t844sj3gse28yb";
 const PHOTO_BUCKET = "instagram-posts";
 const VIDEO_BUCKET = "instagram-videos";
 const ROUTE_SECRET = process.env.REPORT_SECRET ?? "basilico-report-2025";
@@ -137,7 +138,8 @@ async function sendToMake(item: PostResult): Promise<boolean> {
     if (item.tipo === "foto") payload.foto_url = item.url;
     else payload.video_url = item.url;
 
-    const res = await fetch(new URL(MAKE_WEBHOOK_URL).href, {
+    const webhookUrl = item.tipo === "video" ? MAKE_WEBHOOK_REELS : MAKE_WEBHOOK_FOTOS;
+    const res = await fetch(new URL(webhookUrl).href, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
