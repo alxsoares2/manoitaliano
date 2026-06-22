@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+fotos/
+posts-gerados.json
+posts-semanais.json
+fotos-usadas.json
