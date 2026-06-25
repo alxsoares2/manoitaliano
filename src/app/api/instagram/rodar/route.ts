@@ -77,6 +77,7 @@ ${menuRef}
 REGRAS:
 1. Identifique o sabor do cardápio que o conteúdo representa
 2. Use APENAS ingredientes da descrição — NUNCA invente
+3. NUNCA mencione azeitona/azeitona preta — não usamos mais
 3. NÃO mencione forno a lenha, fermentação, métodos de preparo não informados
 4. NÃO mencione salão — apenas delivery
 5. NÃO coloque preço

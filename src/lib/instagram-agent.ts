@@ -99,6 +99,7 @@ ${menuRef}
 REGRAS OBRIGATÓRIAS:
 1. Analise a foto e identifique qual sabor do cardápio acima ela representa
 2. Use APENAS os ingredientes listados na descrição daquele sabor — NUNCA invente ingredientes
+3. NUNCA mencione azeitona/azeitona preta — não usamos mais
 3. NÃO mencione "forno a lenha", "fermentação de 48h", "fermentação natural" ou qualquer método de preparo que não foi informado
 4. NÃO mencione salão, mesa, "venha nos visitar" — apenas delivery
 5. NÃO coloque preço na legenda — preço não converte no Instagram
