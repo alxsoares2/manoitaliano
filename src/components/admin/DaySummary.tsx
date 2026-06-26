@@ -4,10 +4,10 @@ import { formatPrice } from "@/lib/format";
 export default function DaySummary({ orders }: { orders: OrderRecord[] }) {
   const today = new Date().toDateString();
   const todayOrders = orders.filter(
-    (order) => new Date(order.created_at).toDateString() === today
+    (order) => new Date(order.created_at).toDateString() === today && order.status !== "cancelado"
   );
   const revenueToday = todayOrders.reduce((sum, order) => sum + order.total, 0);
-  const openOrders = orders.filter((order) => order.status !== "entregue").length;
+  const openOrders = orders.filter((order) => order.status !== "entregue" && order.status !== "cancelado").length;
 
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
