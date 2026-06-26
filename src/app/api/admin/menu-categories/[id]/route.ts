@@ -12,6 +12,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const update: Record<string, unknown> = {};
   if (body.title !== undefined) update.title = body.title.trim();
   if (body.sort_order !== undefined) update.sort_order = body.sort_order;
+  if (body.visible !== undefined) update.visible = body.visible;
 
   const { data, error } = await supabaseAdmin
     .from("menu_categories")
@@ -31,14 +32,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const { id } = await params;
 
-  const { count } = await supabaseAdmin
+  // Desativar itens da categoria antes de deletar
+  await supabaseAdmin
     .from("menu_items")
-    .select("id", { count: "exact", head: true })
+    .update({ is_active: false, category_id: "sem-categoria" })
     .eq("category_id", id);
-
-  if (count && count > 0) {
-    return NextResponse.json({ error: `Categoria tem ${count} item(ns). Mova ou exclua os itens antes.` }, { status: 422 });
-  }
 
   const { error } = await supabaseAdmin.from("menu_categories").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

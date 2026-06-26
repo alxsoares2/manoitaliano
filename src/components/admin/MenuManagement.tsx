@@ -6,7 +6,7 @@ import { MenuItemRecord } from "@/types/menuItem";
 import MenuItemAdminCard from "./MenuItemAdminCard";
 import MenuItemModal from "./MenuItemModal";
 
-type Category = { id: string; title: string; sort_order: number };
+type Category = { id: string; title: string; sort_order: number; visible?: boolean };
 
 export default function MenuManagement() {
   const [items, setItems] = useState<MenuItemRecord[]>([]);
@@ -123,6 +123,15 @@ export default function MenuManagement() {
     fetchCategories();
   };
 
+  const handleToggleVisible = async (cat: Category) => {
+    const next = !(cat.visible ?? true);
+    setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, visible: next } : c));
+    await fetch(`/api/admin/menu-categories/${cat.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visible: next }),
+    });
+  };
+
   const handleMoveCategory = async (index: number, direction: "up" | "down") => {
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     if (swapIndex < 0 || swapIndex >= categories.length) return;
@@ -205,8 +214,19 @@ export default function MenuManagement() {
                   </>
                 ) : (
                   <>
-                    <span className="flex-1 text-sm font-medium text-foreground">{cat.title}</span>
-                    <span className="text-xs text-muted">{cat.id}</span>
+                    <span className={`flex-1 text-sm font-medium ${(cat.visible ?? true) ? "text-foreground" : "text-muted"}`}>{cat.title}</span>
+                    {/* Toggle visível para cliente */}
+                    <button
+                      onClick={() => handleToggleVisible(cat)}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                        (cat.visible ?? true)
+                          ? "bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600"
+                          : "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700"
+                      }`}
+                      title={(cat.visible ?? true) ? "Visível no cardápio — clique para ocultar" : "Oculto do cardápio — clique para mostrar"}
+                    >
+                      {(cat.visible ?? true) ? "Visível" : "Oculto"}
+                    </button>
                     <button
                       onClick={() => { setEditCatId(cat.id); setEditCatTitle(cat.title); }}
                       className="rounded-lg p-1 text-muted hover:text-gold"
@@ -219,7 +239,7 @@ export default function MenuManagement() {
                     <button
                       onClick={() => handleDeleteCategory(cat.id)}
                       className="rounded-lg p-1 text-muted hover:text-red-500"
-                      title="Excluir"
+                      title="Excluir categoria (itens serão desativados)"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

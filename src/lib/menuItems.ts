@@ -1,7 +1,7 @@
 import { MenuItemRecord } from "@/types/menuItem";
 import { PizzaItem, SimpleItem } from "@/types/menu";
 
-export type MenuCategory = { id: string; title: string; sort_order: number };
+export type MenuCategory = { id: string; title: string; sort_order: number; visible?: boolean };
 
 export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
   if (record.kind === "pizza") {
@@ -31,7 +31,7 @@ export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
 }
 
 export function groupActiveItemsByCategory(records: MenuItemRecord[], categories: MenuCategory[]) {
-  return categories.map((category) => ({
+  return categories.filter((c) => c.visible !== false).map((category) => ({
     id: category.id,
     title: category.title,
     items: records
