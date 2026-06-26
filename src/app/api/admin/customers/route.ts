@@ -1,5 +1,20 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSessionUser } from "@/lib/adminAuth";
+
+// Lista clientes (admin/gerente)
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  const { data, error } = await supabaseAdmin
+    .from("customers")
+    .select("*")
+    .order("last_order_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ customers: data ?? [] });
+}
 
 // Cria ou atualiza um cliente manualmente
 export async function POST(request: Request) {

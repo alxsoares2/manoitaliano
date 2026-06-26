@@ -40,14 +40,13 @@ export default function CustomersPanel() {
     let active = true;
 
     const fetchCustomers = () =>
-      supabase
-        .from("customers")
-        .select("*")
-        .order("last_order_at", { ascending: false })
-        .then(({ data }) => {
+      fetch("/api/admin/customers")
+        .then((r) => r.json())
+        .then(({ customers: data }) => {
           if (active && data) setCustomers(data as CustomerRecord[]);
           if (active) setLoading(false);
-        });
+        })
+        .catch(() => { if (active) setLoading(false); });
 
     fetchCustomers();
 
