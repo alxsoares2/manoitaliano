@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWhatsappText, SITE_URL } from "@/lib/zapi";
 import { sendGroupAlert } from "@/lib/alertGroup";
+import { normalizePhone } from "@/lib/upsertCustomer";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
@@ -394,8 +395,7 @@ async function processOrderFromResponse(response: string, phone: string): Promis
     if (!orderId) return null;
 
     // Upsert customer
-    const digits = phone.replace(/\D/g, "");
-    const cleanPhone = digits.startsWith("55") ? digits.slice(2) : digits;
+    const cleanPhone = normalizePhone(phone);
     await supabaseAdmin.from("customers").upsert(
       {
         phone: cleanPhone,

@@ -1,13 +1,16 @@
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { CustomerDetails } from "@/types/order";
 
+/** Normaliza telefone: remove formatação e prefixo 55, retorna só DDD+número (11 dígitos) */
+export function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  return digits.startsWith("55") && digits.length >= 12 ? digits.slice(2) : digits;
+}
+
 export async function upsertCustomer(customer: CustomerDetails) {
-  const phone = customer.phone.replace(/\D/g, "");
+  const phone = normalizePhone(customer.phone);
   if (!phone) return;
 
-  // O trigger handle_new_order já cria/atualiza o cliente (e agrega total_spent /
-  // orders_count) a cada pedido. Aqui só garantimos os dados de endereço/cep mais
-  // recentes, sem tocar nos campos de agregação.
   await supabase
     .from("customers")
     .update({
