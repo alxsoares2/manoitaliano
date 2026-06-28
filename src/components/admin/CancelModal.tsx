@@ -21,7 +21,7 @@ export default function CancelModal({
   onClose: () => void;
 }) {
   const [reason, setReason] = useState(CANCEL_REASONS[0]);
-  const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const orderNumber = order.order_number ? `${order.order_number}` : order.id.slice(0, 8).toUpperCase();
 
   return (
     <div

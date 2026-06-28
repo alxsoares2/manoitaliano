@@ -46,13 +46,14 @@ export async function sendWhatsappText(phone: string, message: string): Promise<
 export function buildOrderConfirmationMessage(
   name: string,
   orderId: string,
-  total: number
+  total: number,
+  orderNum?: number | null
 ): string {
   const firstName = name.trim().split(" ")[0] || name;
-  const orderNumber = orderId.slice(0, 8).toUpperCase();
+  const orderNumber = orderNum ? `#${orderNum}` : `#${orderId.slice(0, 8).toUpperCase()}`;
   const totalStr = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total);
   return (
-    `Olá ${firstName}! 🍕 Seu pedido #${orderNumber} na Basílico Pizzas foi confirmado — total ${totalStr}.\n\n` +
+    `Olá ${firstName}! 🍕 Seu pedido ${orderNumber} na Basílico Pizzas foi confirmado — total ${totalStr}.\n\n` +
     `Acompanhe em tempo real: ${SITE_URL}/pedido/${orderId}`
   );
 }

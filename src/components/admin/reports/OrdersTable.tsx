@@ -66,7 +66,7 @@ export default function OrdersTable({
                       })}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-semibold text-foreground">
-                      #{order.id.slice(0, 8).toUpperCase()}
+                      {order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-foreground">
                       {order.customer_name}

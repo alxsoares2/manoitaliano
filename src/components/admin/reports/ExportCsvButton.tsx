@@ -45,7 +45,7 @@ function buildCsv(orders: OrderRecord[]): string {
 
     return [
       date,
-      `#${order.id.slice(0, 8).toUpperCase()}`,
+      order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`,
       order.customer_name,
       order.customer_phone,
       address,

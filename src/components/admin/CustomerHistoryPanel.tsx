@@ -109,7 +109,7 @@ export default function CustomerHistoryPanel({
               <div key={order.id} className="rounded-xl border border-border bg-background p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">
-                    Pedido #{order.id.slice(0, 8).toUpperCase()}
+                    Pedido {order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`}
                   </span>
                   <span className="text-xs text-muted">
                     {new Date(order.created_at).toLocaleString("pt-BR", {
