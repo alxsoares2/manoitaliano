@@ -74,6 +74,7 @@ export async function POST(request: Request) {
         payment_method_id: "pix",
         description: "Pedido Basílico Pizzas",
         external_reference: order.id,
+        notification_url: "https://basilicopizzas.com.br/api/payment/webhook",
         payer: {
           email: "cliente@basilicopizzas.com.br",
           first_name: customer.name.split(" ")[0],

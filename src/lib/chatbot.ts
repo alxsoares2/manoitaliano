@@ -217,6 +217,7 @@ async function createPixPayment(orderId: string, total: number, customerName: st
         payment_method_id: "pix",
         description: "Pedido Basílico Pizzas",
         external_reference: orderId,
+        notification_url: "https://basilicopizzas.com.br/api/payment/webhook",
         payer: {
           email: "cliente@basilicopizzas.com.br",
           first_name: customerName.split(" ")[0],
