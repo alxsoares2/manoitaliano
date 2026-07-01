@@ -86,27 +86,27 @@ export default function MenuItemModal({
       unavailable_options: form.kind === "simple" && form.unavailable_options.length > 0 ? form.unavailable_options : null,
     };
 
-    let saveError: { message: string } | null = null;
+    let saveError: { message?: string; error?: string } | null = null;
     if (isEditing) {
       const res = await fetch("/api/admin/menu-items", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, ...payload }),
       });
-      if (!res.ok) saveError = await res.json().catch(() => ({ message: "Erro desconhecido" }));
+      if (!res.ok) saveError = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     } else {
       const res = await fetch("/api/admin/menu-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) saveError = await res.json().catch(() => ({ message: "Erro desconhecido" }));
+      if (!res.ok) saveError = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     }
 
     setSaving(false);
 
     if (saveError) {
-      setError("Não foi possível salvar o item. Tente novamente.");
+      setError(saveError.error ?? saveError.message ?? "Não foi possível salvar o item.");
       return;
     }
 
