@@ -16,7 +16,7 @@ export default function CrmPanel() {
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState<Segment>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState("Olá {nome}! 🍕 A Basílico Pizzas preparou algo especial pra você. Use o cupom {cupom} no seu próximo pedido!\n\nPeça agora: {link}");
+  const [message, setMessage] = useState("Olá {nome}! 🍕 A Mano Italiano preparou algo especial pra você. Use o cupom {cupom} no seu próximo pedido!\n\nPeça agora: {link}");
   const [coupon, setCoupon] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
@@ -114,7 +114,7 @@ export default function CrmPanel() {
   const preview = message
     .replaceAll("{nome}", previewName)
     .replaceAll("{cupom}", coupon || "CUPOM")
-    .replaceAll("{link}", "https://basilicopizzas.com.br");
+    .replaceAll("{link}", "https://manoitaliano.com.br");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

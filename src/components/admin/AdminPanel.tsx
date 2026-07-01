@@ -60,7 +60,7 @@ export default function AdminPanel() {
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Painel Basílico</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Painel Mano Italiano</h1>
           <p className="text-sm text-muted">{TAB_SUBTITLES[activeTab]}</p>
         </div>
         <div className="flex items-center gap-3">

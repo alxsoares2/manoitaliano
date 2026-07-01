@@ -1,6 +1,6 @@
 import { formatPhoneForWhatsapp } from "@/lib/whatsapp";
 
-export const SITE_URL = "https://basilicopizzas.com.br";
+export const SITE_URL = "https://manoitaliano.com.br";
 
 /**
  * Envia mensagem de texto via Z-API direto do servidor (sem round-trip HTTP).
@@ -53,7 +53,7 @@ export function buildOrderConfirmationMessage(
   const orderNumber = orderNum ? `#${orderNum}` : `#${orderId.slice(0, 8).toUpperCase()}`;
   const totalStr = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total);
   return (
-    `Olá ${firstName}! 🍕 Seu pedido ${orderNumber} na Basílico Pizzas foi confirmado — total ${totalStr}.\n\n` +
+    `Olá ${firstName}! 🍕 Seu pedido ${orderNumber} na Mano Italiano foi confirmado — total ${totalStr}.\n\n` +
     `Acompanhe em tempo real: ${SITE_URL}/pedido/${orderId}`
   );
 }

@@ -13,7 +13,7 @@ export default function Header() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
-            alt="Basílico Pizzas"
+            alt="Mano Italiano"
             className="w-auto object-contain"
             style={{ height: "56px" }}
             onError={(e) => {

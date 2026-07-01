@@ -32,10 +32,10 @@ export async function POST(request: Request) {
         issuer_id: issuer ? Number(issuer) : undefined,
         token: cardToken,
         installments: 1,
-        description: "Pedido Basílico Pizzas",
+        description: "Pedido Mano Italiano",
         external_reference: orderId,
         payer: {
-          email: "cliente@basilicopizzas.com.br",
+          email: "cliente@manoitaliano.com.br",
           first_name: order.customer_name.split(" ")[0],
           last_name: order.customer_name.split(" ").slice(1).join(" ") || order.customer_name,
           identification: { type: "CPF", number: cpf?.replace(/\D/g, "") ?? "00000000000" },

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade | Basílico Pizzas",
-  description: "Saiba como a Basílico Pizzas coleta, usa e protege seus dados pessoais conforme a LGPD.",
+  title: "Política de Privacidade | Mano Italiano",
+  description: "Saiba como a Mano Italiano coleta, usa e protege seus dados pessoais conforme a LGPD.",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -42,7 +42,7 @@ export default function PoliticaDePrivacidade() {
         </div>
 
         <div className="mb-10 rounded-xl border border-border bg-background-elevated p-5 text-sm leading-relaxed text-foreground/80">
-          A Basílico Pizzas respeita sua privacidade. Esta política explica, em linguagem simples, quais dados
+          A Mano Italiano respeita sua privacidade. Esta política explica, em linguagem simples, quais dados
           coletamos quando você faz um pedido pelo nosso site, como os usamos e quais são os seus direitos —
           tudo em conformidade com a{" "}
           <strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD)</strong>.
@@ -50,14 +50,14 @@ export default function PoliticaDePrivacidade() {
 
         <Section title="1. Quem somos">
           <p>
-            <strong>Basílico Pizzas</strong> é uma pizzaria localizada na Av. Bananeiras, 190, Manaíra,
+            <strong>Mano Italiano</strong> é uma pizzaria localizada na Av. Bananeiras, 190, Manaíra,
             João Pessoa/PB. Somos os responsáveis pelo tratamento dos seus dados pessoais coletados por
-            meio do site <strong>basilicopizzas.com.br</strong>.
+            meio do site <strong>manoitaliano.com.br</strong>.
           </p>
           <p>
             Contato do responsável (Encarregado de Dados):{" "}
-            <a href="mailto:contato@basilicopizzas.com.br" className="text-gold-soft underline hover:no-underline">
-              contato@basilicopizzas.com.br
+            <a href="mailto:contato@manoitaliano.com.br" className="text-gold-soft underline hover:no-underline">
+              contato@manoitaliano.com.br
             </a>{" "}
             ou pelo WhatsApp{" "}
             <a href="https://wa.me/5583993228832" target="_blank" rel="noopener noreferrer" className="text-gold-soft underline hover:no-underline">
@@ -147,8 +147,8 @@ export default function PoliticaDePrivacidade() {
           </ul>
           <p>
             Para exercer qualquer um desses direitos, entre em contato pelo e-mail{" "}
-            <a href="mailto:contato@basilicopizzas.com.br" className="text-gold-soft underline hover:no-underline">
-              contato@basilicopizzas.com.br
+            <a href="mailto:contato@manoitaliano.com.br" className="text-gold-soft underline hover:no-underline">
+              contato@manoitaliano.com.br
             </a>{" "}
             ou pelo WhatsApp <strong>(83) 99322-8832</strong>. Responderemos em até 15 dias úteis.
           </p>
@@ -196,8 +196,8 @@ export default function PoliticaDePrivacidade() {
           <ul className="ml-4 list-disc space-y-1">
             <li>
               <strong>E-mail:</strong>{" "}
-              <a href="mailto:contato@basilicopizzas.com.br" className="text-gold-soft underline hover:no-underline">
-                contato@basilicopizzas.com.br
+              <a href="mailto:contato@manoitaliano.com.br" className="text-gold-soft underline hover:no-underline">
+                contato@manoitaliano.com.br
               </a>
             </li>
             <li>
@@ -217,7 +217,7 @@ export default function PoliticaDePrivacidade() {
         </Section>
 
         <div className="mt-12 border-t border-border pt-8 text-center text-xs text-muted">
-          © {new Date().getFullYear()} Basílico Pizzas · João Pessoa/PB ·{" "}
+          © {new Date().getFullYear()} Mano Italiano · João Pessoa/PB ·{" "}
           <Link href="/" className="hover:text-foreground transition">
             Voltar ao cardápio
           </Link>

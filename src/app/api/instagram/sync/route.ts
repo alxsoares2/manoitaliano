@@ -35,12 +35,12 @@ async function buildSystemPrompt(): Promise<string> {
     .map((i) => `- ${i.name}: ${i.description ?? "sem descrição"}`)
     .join("\n");
 
-  return `Você é um social media especialista em gastronomia para a Basílico Pizzas.
+  return `Você é um social media especialista em gastronomia para a Mano Italiano.
 
 SOBRE A BASÍLICO:
 - Pizzaria artesanal em Manaíra, João Pessoa/PB
 - Apenas delivery — NÃO mencione salão ou "venha nos visitar"
-- Site: basilicopizzas.com.br · Instagram: @basilicopizzas
+- Site: manoitaliano.com.br · Instagram: @manoitaliano
 - Público: 28-45 anos, renda média-alta
 - Tom: sofisticado mas acolhedor
 
@@ -55,9 +55,9 @@ REGRAS:
 4. NÃO mencione salão — apenas delivery
 5. NÃO coloque preço
 6. Tamanhos: "Pizza Média" e "Pizza Grande"
-7. Call-to-action: basilicopizzas.com.br
+7. Call-to-action: manoitaliano.com.br
 
-JSON: {"sabor":"...","legenda":"...(máx 2200 chars)","hashtags":"#hash1 #hash2 ...(20-25, incluir #basilicopizzas)"}`;
+JSON: {"sabor":"...","legenda":"...(máx 2200 chars)","hashtags":"#hash1 #hash2 ...(20-25, incluir #manoitaliano)"}`;
 }
 
 // ─── Gerar legenda para foto ──────────────────────────────────────
@@ -94,7 +94,7 @@ async function generateVideoCaption(fileName: string, systemPrompt: string): Pro
     headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
       model: MODEL, max_tokens: 1024, system: systemPrompt,
-      messages: [{ role: "user", content: `Este é um Reels/vídeo de pizza da Basílico Pizzas. Arquivo: "${fileName}". Gere uma legenda envolvente para Reels mostrando pizza artesanal. Foque no visual (queijo derretendo, fatia sendo puxada) e use o tom da marca. CTA para delivery. JSON.` }],
+      messages: [{ role: "user", content: `Este é um Reels/vídeo de pizza da Mano Italiano. Arquivo: "${fileName}". Gere uma legenda envolvente para Reels mostrando pizza artesanal. Foque no visual (queijo derretendo, fatia sendo puxada) e use o tom da marca. CTA para delivery. JSON.` }],
     }),
   });
 
@@ -103,7 +103,7 @@ async function generateVideoCaption(fileName: string, systemPrompt: string): Pro
   const text = data.content?.[0]?.text ?? "";
   const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)![0]);
   const hashtags = (parsed.hashtags as string).replace(/#manaira\s*/gi, "").replace(/\s+/g, " ").trim();
-  return { sabor: parsed.sabor ?? "Basílico Pizzas", caption: `${parsed.legenda}\n\n${hashtags}` };
+  return { sabor: parsed.sabor ?? "Mano Italiano", caption: `${parsed.legenda}\n\n${hashtags}` };
 }
 
 // ─── Handler ──────────────────────────────────────────────────────

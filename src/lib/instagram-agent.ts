@@ -83,13 +83,13 @@ function buildMenuReference(items: MenuItem[]): string {
 }
 
 function buildSystemPrompt(menuRef: string): string {
-  return `Você é um social media especialista em gastronomia para a Basílico Pizzas.
+  return `Você é um social media especialista em gastronomia para a Mano Italiano.
 
 SOBRE A BASÍLICO:
 - Pizzaria artesanal em Manaíra, João Pessoa/PB
 - Apenas delivery — NÃO mencione salão, restaurante ou "venha nos visitar"
-- Site: basilicopizzas.com.br
-- Instagram: @basilicopizzas
+- Site: manoitaliano.com.br
+- Instagram: @manoitaliano
 - Público: 28-45 anos, renda média-alta
 - Tom: sofisticado mas acolhedor, elegante sem ser pretensioso
 
@@ -105,10 +105,10 @@ REGRAS OBRIGATÓRIAS:
 5. NÃO coloque preço na legenda — preço não converte no Instagram
 6. Os tamanhos são "Pizza Média" e "Pizza Grande" (não "Médio" ou "Grande")
 7. Seja específico sobre o que REALMENTE aparece na foto usando os ingredientes reais
-8. Call-to-action: sempre direcionar para basilicopizzas.com.br
+8. Call-to-action: sempre direcionar para manoitaliano.com.br
 
 FORMATO DA RESPOSTA (JSON exato):
-{"sabor": "nome do sabor identificado", "legenda": "texto da legenda (máx 2200 chars)", "hashtags": "#hash1 #hash2 ... (20-25 hashtags, sempre incluir #basilicopizzas)"}`;
+{"sabor": "nome do sabor identificado", "legenda": "texto da legenda (máx 2200 chars)", "hashtags": "#hash1 #hash2 ... (20-25 hashtags, sempre incluir #manoitaliano)"}`;
 }
 
 // ─── Etapa 3: Gerar legendas ──────────────────────────────────────
@@ -228,7 +228,7 @@ async function main() {
   if (!ANTHROPIC_API_KEY) { console.error("❌ ANTHROPIC_API_KEY não configurada"); process.exit(1); }
   if (!SUPABASE_URL || !SUPABASE_KEY) { console.error("❌ Variáveis Supabase não configuradas"); process.exit(1); }
 
-  console.log("\n🍕 Basílico Pizzas — Instagram Agent v3");
+  console.log("\n🍕 Mano Italiano — Instagram Agent v3");
 
   // Etapa 1: Tratar imagens brutas
   const treatedFiles = await processImages();

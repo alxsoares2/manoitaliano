@@ -116,7 +116,7 @@ export default function OrdersDashboard() {
 
     const orderNum = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
     const message =
-      `Olá ${order.customer_name}, infelizmente seu pedido ${orderNum} da Basílico Pizzas foi cancelado. ` +
+      `Olá ${order.customer_name}, infelizmente seu pedido ${orderNum} da Mano Italiano foi cancelado. ` +
       `Motivo: ${reason}. Entre em contato pelo (83) 99322-8832 para mais informações.`;
 
     sendWhatsappMessage(order.customer_phone, message).catch(

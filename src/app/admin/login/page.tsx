@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-border bg-background-elevated p-8 shadow-sm"
       >
-        <h1 className="text-2xl font-semibold text-foreground">Painel Basílico</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Painel Mano Italiano</h1>
         <p className="mt-1 mb-6 text-sm text-muted">Entre com sua conta</p>
 
         <div className="mb-4">

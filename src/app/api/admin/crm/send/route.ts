@@ -3,7 +3,7 @@ import { formatPhoneForWhatsapp } from "@/lib/whatsapp";
 
 type Recipient = { phone: string; name: string };
 
-const SITE_URL = "https://basilicopizzas.com.br";
+const SITE_URL = "https://manoitaliano.com.br";
 
 function personalize(template: string, name: string, coupon: string) {
   const firstName = name.trim().split(" ")[0] || name;

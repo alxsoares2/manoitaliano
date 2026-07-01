@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     .lt("created_at", dayEndUTC);
 
   if (!orders || orders.length === 0) {
-    const msg = `📊 RELATÓRIO DO DIA — Basílico Pizzas\n\nData: ${dateStr}\n\nNenhum pedido registrado hoje.`;
+    const msg = `📊 RELATÓRIO DO DIA — Mano Italiano\n\nData: ${dateStr}\n\nNenhum pedido registrado hoje.`;
     await sendGroupMessage(msg);
     return NextResponse.json({ ok: true, orders: 0 });
   }
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
 
   const sep = "➖➖➖➖➖➖➖➖➖➖";
   const msg = [
-    "📊 RELATÓRIO DO DIA — Basílico Pizzas",
+    "📊 RELATÓRIO DO DIA — Mano Italiano",
     `Data: ${dateStr}`,
     sep,
     `🍕 Pedidos: ${totalPedidos}`,

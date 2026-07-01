@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const url = searchParams.get("url") ?? "https://basilicopizzas.com.br";
+  const url = searchParams.get("url") ?? "https://manoitaliano.com.br";
 
   const dataUrl = await QRCode.toDataURL(url, {
     width: 200,

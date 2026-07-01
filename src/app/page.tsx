@@ -29,7 +29,7 @@ function HomeContent() {
         setItems(itemsRes.data as MenuItemRecord[]);
         if (!viewContentFired.current) {
           viewContentFired.current = true;
-          pixel.viewContent("Cardápio Basílico Pizzas");
+          pixel.viewContent("Cardápio Mano Italiano");
         }
       }
       if (active && catsRes.data) setCategories(catsRes.data as MenuCategory[]);
@@ -81,7 +81,7 @@ function HomeContent() {
         />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 py-16 text-center sm:px-6 sm:py-24">
           <span className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
-            Basílico Pizzas
+            Mano Italiano
           </span>
           <h1
             className="text-4xl font-bold text-white sm:text-6xl"
@@ -150,7 +150,7 @@ function HomeContent() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="mb-10 flex flex-col items-center gap-3 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Basílico Pizzas" className="h-16 w-auto object-contain opacity-80" />
+            <img src="/logo.png" alt="Mano Italiano" className="h-16 w-auto object-contain opacity-80" />
             <p className="max-w-sm text-sm leading-relaxed text-muted">
               Pizzaria artesanal em João Pessoa — peça pelo delivery!
             </p>
@@ -177,14 +177,14 @@ function HomeContent() {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Instagram</h3>
-              <a href="https://instagram.com/basilicopizzas" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
-                @basilicopizzas
+              <a href="https://instagram.com/manoitaliano" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
+                @manoitaliano
               </a>
             </div>
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-2 text-center text-xs text-muted">
-            <p>© {new Date().getFullYear()} Basílico Pizzas · Delivery premium em João Pessoa</p>
+            <p>© {new Date().getFullYear()} Mano Italiano · Delivery premium em João Pessoa</p>
             <a href="/politica-de-privacidade" className="underline transition hover:text-foreground">
               Política de Privacidade
             </a>

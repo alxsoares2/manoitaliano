@@ -44,9 +44,9 @@ export async function POST(request: Request) {
         payment_method_id: paymentMethodId,
         issuer_id: issuer,
         installments: installments ?? 1,
-        description: "Pedido Basílico Pizzas",
+        description: "Pedido Mano Italiano",
         payer: {
-          email: "cliente@basilicopizzas.com.br",
+          email: "cliente@manoitaliano.com.br",
           first_name: customer.name.split(" ")[0],
           last_name: customer.name.split(" ").slice(1).join(" ") || customer.name,
           identification: { type: "CPF", number: cpf?.replace(/\D/g, "") },

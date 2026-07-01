@@ -51,7 +51,7 @@ export const menu: MenuCategory[] = [
       {
         id: "basilico-royale",
         kind: "pizza",
-        name: "Basílico Royale",
+        name: "Mano Italiano Royale",
         description:
           "Molho de tomate artesanal, mozzarella, peito de peru, cream cheese, geleia de amora Queensberry, manjericão",
         prices: { media: 60, grande: 70 },
@@ -181,7 +181,7 @@ export const menu: MenuCategory[] = [
       {
         id: "basilico-suprema",
         kind: "pizza",
-        name: "Basílico Suprema",
+        name: "Mano Italiano Suprema",
         description: "Molho de tomate artesanal, peito de peru, cream cheese, pepperoni, manjericão e orégano",
         prices: { media: 60, grande: 70 },
       },

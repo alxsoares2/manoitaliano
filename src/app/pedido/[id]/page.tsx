@@ -79,7 +79,7 @@ export default function OrderTrackingPage() {
       <header className="border-b border-border bg-white">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Basílico Pizzas" className="h-10 w-auto object-contain" />
+          <img src="/logo.png" alt="Mano Italiano" className="h-10 w-auto object-contain" />
           <span className="text-xs font-semibold uppercase tracking-widest text-muted">
             Pedido {orderNumber}
           </span>

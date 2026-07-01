@@ -215,11 +215,11 @@ async function createPixPayment(orderId: string, total: number, customerName: st
       body: {
         transaction_amount: total,
         payment_method_id: "pix",
-        description: "Pedido Basílico Pizzas",
+        description: "Pedido Mano Italiano",
         external_reference: orderId,
-        notification_url: "https://basilicopizzas.com.br/api/payment/webhook",
+        notification_url: "https://manoitaliano.com.br/api/payment/webhook",
         payer: {
-          email: "cliente@basilicopizzas.com.br",
+          email: "cliente@manoitaliano.com.br",
           first_name: customerName.split(" ")[0],
           last_name: customerName.split(" ").slice(1).join(" ") || customerName,
         },
@@ -267,7 +267,7 @@ function buildSystemPrompt(
   if (isFirstMessage) {
     firstInstruction = `
 PRIMEIRA MENSAGEM — peça o CEP:
-"Olá! 🍕 Bem-vindo à Basílico Pizzas! Para começar, me diz seu CEP que verifico se realizamos entregas na sua região."
+"Olá! 🍕 Bem-vindo à Mano Italiano! Para começar, me diz seu CEP que verifico se realizamos entregas na sua região."
 Se o cliente já mencionou itens, reconheça mas ainda peça o CEP primeiro.
 `;
   }
@@ -294,14 +294,14 @@ As 4 categorias:
 `;
   }
 
-  return `Você é o atendente virtual da Basílico Pizzas, pizzaria artesanal em João Pessoa/PB.
+  return `Você é o atendente virtual da Mano Italiano, pizzaria artesanal em João Pessoa/PB.
 Tom amigável, simpático, eficiente. Máximo 2-3 emojis por mensagem. Direto ao ponto.
 Conversa via WhatsApp — texto simples, SEM markdown (nada de **, ##, -, etc.).
 ${firstInstruction}${cepPendingInstruction}${menuInstruction}
 REGRAS:
 - Português brasileiro sempre
 - Respostas curtas (máx 4 parágrafos)
-- Falar com humano: (83) 99322-8832 ou @basilicopizzas
+- Falar com humano: (83) 99322-8832 ou @manoitaliano
 - Endereço: Av. Bananeiras, 190, Manaíra, JP/PB
 - Horário: Seg-Qui 17h-22h, Sex-Dom 17h-23h
 ${addressContext}
@@ -501,7 +501,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
     // Sem CEP na mensagem — se for primeira msg, pedir CEP
     if (!state.greeted) {
       state.greeted = true;
-      const msg = "Olá! 🍕 Bem-vindo à Basílico Pizzas, pizzaria artesanal em João Pessoa!\n\nPara começar, me diz seu CEP que verifico se realizamos entregas na sua região.";
+      const msg = "Olá! 🍕 Bem-vindo à Mano Italiano, pizzaria artesanal em João Pessoa!\n\nPara começar, me diz seu CEP que verifico se realizamos entregas na sua região.";
       session.messages.push({ role: "assistant", content: msg });
       await saveSession(phone, state, session.messages);
       await sendWhatsappText(phone, msg);
