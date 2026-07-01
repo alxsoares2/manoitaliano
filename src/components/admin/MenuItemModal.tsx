@@ -82,8 +82,8 @@ export default function MenuItemModal({
       price: form.kind === "simple" ? Number(form.price) || 0 : null,
       price_media: form.kind === "pizza" ? Number(form.price_media) || 0 : null,
       price_grande: form.kind === "pizza" ? Number(form.price_grande) || 0 : null,
-      options: form.kind === "simple" && options.length > 0 ? options : null,
-      unavailable_options: form.kind === "simple" && form.unavailable_options.length > 0 ? form.unavailable_options : null,
+      options: form.kind === "simple" && options.length > 0 ? options : [],
+      unavailable_options: form.kind === "simple" ? form.unavailable_options : [],
     };
 
     let saveError: { message?: string; error?: string } | null = null;
