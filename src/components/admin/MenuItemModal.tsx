@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { MenuItemKind, MenuItemRecord } from "@/types/menuItem";
 
 type CategoryOption = { id: string; title: string };
@@ -87,9 +86,22 @@ export default function MenuItemModal({
       unavailable_options: form.kind === "simple" && form.unavailable_options.length > 0 ? form.unavailable_options : null,
     };
 
-    const { error: saveError } = isEditing
-      ? await supabase.from("menu_items").update(payload).eq("id", item.id)
-      : await supabase.from("menu_items").insert({ ...payload, is_active: true, sort_order: 0 });
+    let saveError: { message: string } | null = null;
+    if (isEditing) {
+      const res = await fetch("/api/admin/menu-items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, ...payload }),
+      });
+      if (!res.ok) saveError = await res.json().catch(() => ({ message: "Erro desconhecido" }));
+    } else {
+      const res = await fetch("/api/admin/menu-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) saveError = await res.json().catch(() => ({ message: "Erro desconhecido" }));
+    }
 
     setSaving(false);
 

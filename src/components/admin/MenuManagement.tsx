@@ -34,13 +34,10 @@ export default function MenuManagement() {
     let active = true;
 
     const fetchItems = () =>
-      supabase
-        .from("menu_items")
-        .select("*")
-        .order("category_id", { ascending: true })
-        .order("sort_order", { ascending: true })
-        .then(({ data }) => {
-          if (active && data) setItems(data as MenuItemRecord[]);
+      fetch("/api/admin/menu-items")
+        .then((r) => r.json())
+        .then((data) => {
+          if (active && Array.isArray(data)) setItems(data as MenuItemRecord[]);
           if (active) setLoading(false);
         });
 
@@ -65,7 +62,7 @@ export default function MenuManagement() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    await supabase.from("menu_items").delete().eq("id", deleteTarget.id);
+    await fetch(`/api/admin/menu-items?id=${deleteTarget.id}`, { method: "DELETE" });
     setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
     setDeleteTarget(null);
     setDeleting(false);
@@ -74,7 +71,11 @@ export default function MenuManagement() {
   const handleToggleActive = async (item: MenuItemRecord) => {
     const is_active = !item.is_active;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_active } : i)));
-    await supabase.from("menu_items").update({ is_active }).eq("id", item.id);
+    await fetch("/api/admin/menu-items", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.id, is_active }),
+    });
   };
 
   const handleCreateCategory = async () => {
