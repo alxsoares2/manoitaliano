@@ -177,8 +177,8 @@ function HomeContent() {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Instagram</h3>
-              <a href="https://instagram.com/manoitaliano" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
-                @manoitaliano
+              <a href="https://instagram.com/mano.italiano" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
+                @mano.italiano
               </a>
             </div>
           </div>
