@@ -61,8 +61,8 @@ hr { border: none; border-top: 2px dashed #000; margin: 3mm 0; }
 <body>
 
 <div class="order-num">${orderNum}</div>
-<p class="brand">BASÍLICO PIZZAS</p>
-<p class="brand-sub">Delivery</p>
+<p class="brand">MANO ITALIANO</p>
+<p class="brand-sub">Cucina Italiana</p>
 
 <hr>
 

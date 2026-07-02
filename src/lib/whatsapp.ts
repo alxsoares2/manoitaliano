@@ -13,7 +13,7 @@ export function buildWhatsappLink(phone: string, message?: string): string {
 
 export function buildOutForDeliveryMessage(order: OrderRecord): string {
   const orderNumber = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
-  return `Olá ${order.customer_name}! 🍕 Seu pedido da Mano Italiano ${orderNumber} saiu para entrega e chegará em breve. Obrigado pela preferência!`;
+  return `Olá ${order.customer_name}! 🍕 Seu pedido da Basílico Pizzas ${orderNumber} saiu para entrega e chegará em breve. Obrigado pela preferência!`;
 }
 
 export async function sendWhatsappMessage(phone: string, message: string): Promise<void> {

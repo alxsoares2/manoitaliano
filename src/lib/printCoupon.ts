@@ -15,7 +15,7 @@ export async function printCoupon(coupon: CouponRecord) {
     : "Uso ilimitado";
 
   // Gera o QR server-side via API route (qrcode é pacote Node.js)
-  const res = await fetch("/api/admin/qr?url=https%3A%2F%2Fmanoitaliano.com.br");
+  const res = await fetch("/api/admin/qr?url=https%3A%2F%2Fbasilicopizzas.com.br");
   const { dataUrl: qrDataUrl } = await res.json();
   console.log("[printCoupon] QR data URL gerado, length:", qrDataUrl?.length, "prefix:", qrDataUrl?.slice(0, 40));
 
@@ -170,7 +170,7 @@ export async function printCoupon(coupon: CouponRecord) {
   <hr />
 
   <div class="qr-wrap">
-    <img src="${qrDataUrl}" alt="QR Code manoitaliano.com.br" />
+    <img src="${qrDataUrl}" alt="QR Code basilicopizzas.com.br" />
   </div>
   <p class="qr-label">Aponte a camera e peca agora!</p>
 
