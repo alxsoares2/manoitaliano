@@ -24,16 +24,16 @@ export default function Header() {
           />
           <div className="hidden flex-col leading-none sm:flex">
             <span className="font-display text-2xl" style={{ color: "#1A1A1A", fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600 }}>
-              basílico
+              mano italiano
             </span>
             <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", letterSpacing: "0.2em", color: "#1A1A1A", fontWeight: 300 }}>
-              pizzas
+              cucina italiana
             </span>
           </div>
           {/* Fallback when logo fails */}
           <div className="hidden flex-col leading-none">
-            <span className="font-display text-2xl font-semibold" style={{ color: "#1A1A1A" }}>basílico</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", letterSpacing: "0.2em", color: "#1A1A1A", fontWeight: 300 }}>pizzas</span>
+            <span className="font-display text-2xl font-semibold" style={{ color: "#1A1A1A" }}>mano italiano</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", letterSpacing: "0.2em", color: "#1A1A1A", fontWeight: 300 }}>cucina italiana</span>
           </div>
         </div>
 

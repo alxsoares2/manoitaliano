@@ -116,7 +116,7 @@ export default function CartSidebar({ storeClosed = false }: { storeClosed?: boo
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
             <p className="mt-16 text-center text-sm text-muted">
-              Seu carrinho está vazio. Escolha uma pizza deliciosa para começar! 🍕
+              Seu carrinho está vazio. Escolha um prato delicioso para começar!
             </p>
           ) : (
             <ul className="space-y-3">

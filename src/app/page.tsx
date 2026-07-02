@@ -93,7 +93,7 @@ function HomeContent() {
             className="mt-4 max-w-md text-base leading-relaxed text-white/70 sm:text-lg"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            Pizza artesanal direto da nossa cozinha
+            Massa artesanal direto da nossa cozinha
           </p>
           <a
             href="#cardapio"
@@ -114,7 +114,7 @@ function HomeContent() {
             Cardápio
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-            Pizzas artesanais, entradas e doces — feitos com ingredientes
+            Massas artesanais, entradas e sobremesas — feitos com ingredientes
             selecionados. Toque em um item para montar seu pedido.
           </p>
         </section>
@@ -152,7 +152,7 @@ function HomeContent() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Mano Italiano" className="h-16 w-auto object-contain opacity-80" />
             <p className="max-w-sm text-sm leading-relaxed text-muted">
-              Pizzaria artesanal em João Pessoa — peça pelo delivery!
+              Cucina italiana artesanal em João Pessoa — peça pelo delivery!
             </p>
           </div>
 
@@ -160,7 +160,7 @@ function HomeContent() {
             <div className="flex flex-col gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Endereço</h3>
               <p className="text-sm leading-relaxed text-foreground">
-                Av. Bananeiras, 190<br />Manaíra, João Pessoa/PB
+                R. José Liberato, 312 A<br />Miramar, João Pessoa/PB
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -171,8 +171,8 @@ function HomeContent() {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">WhatsApp</h3>
-              <a href="https://wa.me/5583993228832" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
-                (83) 99322-8832
+              <a href="https://wa.me/5583991170051" target="_blank" rel="noopener noreferrer" className="text-sm text-foreground transition hover:text-gold-soft">
+                (83) 99117-0051
               </a>
             </div>
             <div className="flex flex-col gap-2">

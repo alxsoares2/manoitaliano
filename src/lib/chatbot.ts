@@ -88,7 +88,7 @@ async function getMenuItems(): Promise<MenuItem[]> {
 }
 
 function buildCategoryMenu(): string {
-  return `1. 🍕 Pizzas Salgadas\n2. 🍫 Pizzas Doces\n3. 🥗 Entradas\n4. 🥤 Bebidas`;
+  return `1. 🍝 Massas\n2. 🥗 Saladas\n3. 🥩 Entradas\n4. 🥤 Bebidas`;
 }
 
 function buildCategoryItems(items: MenuItem[], categoryNum: number): string {
@@ -287,22 +287,22 @@ Se o cliente perguntar ingredientes de um item, mostre a descrição DAQUELE ite
 Se o cliente mencionar um item diretamente pelo nome, identifique-o e prossiga sem forçar o menu.
 
 As 4 categorias:
-1. Pizzas Salgadas (Clássicas + Favoritas da Casa + Especiais)
-2. Pizzas Doces
+1. Massas (Espaguete, Fettuccine, Pappardelle)
+2. Saladas
 3. Entradas
 4. Bebidas
 `;
   }
 
-  return `Você é o atendente virtual da Mano Italiano, pizzaria artesanal em João Pessoa/PB.
+  return `Você é o atendente virtual da Mano Italiano, restaurante italiano artesanal em João Pessoa/PB.
 Tom amigável, simpático, eficiente. Máximo 2-3 emojis por mensagem. Direto ao ponto.
 Conversa via WhatsApp — texto simples, SEM markdown (nada de **, ##, -, etc.).
 ${firstInstruction}${cepPendingInstruction}${menuInstruction}
 REGRAS:
 - Português brasileiro sempre
 - Respostas curtas (máx 4 parágrafos)
-- Falar com humano: (83) 99322-8832 ou @manoitaliano
-- Endereço: Av. Bananeiras, 190, Manaíra, JP/PB
+- Falar com humano: (83) 99117-0051 ou @manoitaliano
+- Endereço: R. José Liberato, 312 A, Miramar, João Pessoa/PB, CEP 58043-100
 - Horário: Seg-Qui 17h-22h, Sex-Dom 17h-23h
 ${addressContext}
 ${customerInfo ? `CLIENTE RECORRENTE:\n${customerInfo}\n` : ""}
@@ -317,12 +317,12 @@ FLUXO OBRIGATÓRIO (siga CADA passo, NÃO pule nenhum):
 1. Pedir CEP → confirmar bairro/frete
 2. Mostrar 4 categorias
 3. Cliente escolhe categoria → mostrar itens numerados (nome + preço, SEM descrição)
-4. Cliente escolhe pizza → perguntar tamanho (Média/Grande)
-5. OBRIGATÓRIO: "Quer adicionar borda recheada? (S/N)" → se S, mostrar as opções de borda com preço
-6. OBRIGATÓRIO: "Quer meio a meio com outro sabor? (S/N)" → se S, mostrar sabores disponíveis
-7. OBRIGATÓRIO: "Quer adicionar mais uma pizza? (S/N)" → se S, voltar às categorias
-8. OBRIGATÓRIO: "Quer adicionar uma bebida? (S/N)" → se S, mostrar bebidas
-9. OBRIGATÓRIO: "Quer uma Pizza Nutella Individual de sobremesa por R$25,99? (S/N)"
+4. Cliente escolhe prato → perguntar tamanho (Executivo/Individual/Duplo) se disponível
+5. OBRIGATÓRIO: "Quer adicionar mais algum prato? (S/N)" → se S, voltar às categorias
+6. OBRIGATÓRIO: "Quer adicionar uma bebida? (S/N)" → se S, mostrar bebidas
+7. Mostrar RESUMO completo com todos os itens + frete + total
+8. Pedir nome + número da casa + complemento (se não tiver)
+9. Pagamento: PIX ou Cartão
 10. Mostrar RESUMO completo com todos os itens + frete + total
 11. Pedir nome + número da casa + complemento (se não tiver)
 12. Pagamento: PIX ou Cartão

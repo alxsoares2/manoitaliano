@@ -16,9 +16,9 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Mano Italiano | Pizzaria Premium em João Pessoa",
+  title: "Mano Italiano | Cucina Italiana em João Pessoa",
   description:
-    "Cardápio Mano Italiano — pizzas artesanais, entradas e doces. Peça online com entrega em João Pessoa/PB.",
+    "Cardápio Mano Italiano — massas artesanais, entradas e sobremesas. Peça online com entrega em João Pessoa/PB.",
 };
 
 export default function RootLayout({

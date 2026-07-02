@@ -50,7 +50,7 @@ export default function PoliticaDePrivacidade() {
 
         <Section title="1. Quem somos">
           <p>
-            <strong>Mano Italiano</strong> é uma pizzaria localizada na Av. Bananeiras, 190, Manaíra,
+            <strong>Mano Italiano</strong> é um restaurante italiano localizado na R. José Liberato, 312 A, Miramar,
             João Pessoa/PB. Somos os responsáveis pelo tratamento dos seus dados pessoais coletados por
             meio do site <strong>manoitaliano.com.br</strong>.
           </p>
@@ -60,8 +60,8 @@ export default function PoliticaDePrivacidade() {
               contato@manoitaliano.com.br
             </a>{" "}
             ou pelo WhatsApp{" "}
-            <a href="https://wa.me/5583993228832" target="_blank" rel="noopener noreferrer" className="text-gold-soft underline hover:no-underline">
-              (83) 99322-8832
+            <a href="https://wa.me/5583991170051" target="_blank" rel="noopener noreferrer" className="text-gold-soft underline hover:no-underline">
+              (83) 99117-0051
             </a>.
           </p>
         </Section>
