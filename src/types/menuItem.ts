@@ -11,6 +11,9 @@ export type MenuItemRecord = {
   price_grande: number | null;
   options: string[] | null;
   unavailable_options: string[] | null;
+  price_executivo: number | null;
+  price_individual: number | null;
+  price_duplo: number | null;
   image_url: string | null;
   is_active: boolean;
   sort_order: number;

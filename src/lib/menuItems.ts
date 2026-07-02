@@ -27,6 +27,11 @@ export function toMenuItem(record: MenuItemRecord): PizzaItem | SimpleItem {
     image_url: record.image_url,
     options: record.options ?? undefined,
     unavailableOptions: record.unavailable_options ?? undefined,
+    sizesPrices: (record.price_executivo || record.price_individual || record.price_duplo) ? {
+      executivo: record.price_executivo ?? undefined,
+      individual: record.price_individual ?? undefined,
+      duplo: record.price_duplo ?? undefined,
+    } : undefined,
   };
 }
 

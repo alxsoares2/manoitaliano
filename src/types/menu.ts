@@ -19,6 +19,7 @@ export type SimpleItem = {
   image_url?: string | null;
   options?: string[];
   unavailableOptions?: string[];
+  sizesPrices?: { executivo?: number; individual?: number; duplo?: number };
 };
 
 export type BordaOption = {
