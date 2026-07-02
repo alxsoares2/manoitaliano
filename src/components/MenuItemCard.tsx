@@ -73,6 +73,11 @@ export default function MenuItemCard({
   }
 
   if (item.options) {
+    const sp = item.sizesPrices;
+    const sizePrices = sp ? [sp.executivo, sp.individual, sp.duplo].filter((p): p is number => p != null) : [];
+    const displayPrice = sizePrices.length > 0 ? Math.min(...sizePrices) : item.price;
+    const hasSizes = sizePrices.length > 0;
+
     return (
       <>
         <button onClick={() => !storeClosed && setModalOpen(true)} disabled={storeClosed} className={`${rowClass} disabled:cursor-not-allowed disabled:opacity-50`}>
@@ -81,9 +86,11 @@ export default function MenuItemCard({
             {item.description && (
               <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p>
             )}
-            <span className="mt-1.5 block text-sm font-medium text-foreground">{formatPrice(item.price)}</span>
+            <span className="mt-1.5 block text-sm font-medium text-foreground">
+              {hasSizes ? `A partir de ${formatPrice(displayPrice)}` : formatPrice(displayPrice)}
+            </span>
             <span className="mt-1 inline-block text-xs font-semibold uppercase tracking-widest text-gold-soft">
-              Escolher opção →
+              {hasSizes ? "Escolher tamanho →" : "Escolher opção →"}
             </span>
           </div>
           <ItemThumb url={item.image_url} name={item.name} />
