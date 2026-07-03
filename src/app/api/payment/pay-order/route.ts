@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 import { friendlyCardError } from "@/lib/mpErrors";
+import { notifyGroupNewOrder } from "@/lib/alertGroup";
+import { sendWhatsappText, buildOrderConfirmationMessage } from "@/lib/zapi";
 
 const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const payment = new Payment(mp);
@@ -48,6 +50,34 @@ export async function POST(request: Request) {
         .from("orders")
         .update({ status: "recebido", payment_id: String(mpPayment.id), payment_method: "card" })
         .eq("id", orderId);
+
+      const { data: fullOrder } = await supabase
+        .from("orders")
+        .select("customer_name, customer_phone, total, order_number, items, neighborhood, notes")
+        .eq("id", orderId)
+        .single();
+
+      if (fullOrder) {
+        sendWhatsappText(
+          fullOrder.customer_phone,
+          buildOrderConfirmationMessage(fullOrder.customer_name, orderId, Number(fullOrder.total))
+        ).catch(() => {});
+
+        const itemLines = Array.isArray(fullOrder.items)
+          ? fullOrder.items.map((it: { name: string; quantity?: number }) => `• ${it.quantity ?? 1}x ${it.name}`).join("\n")
+          : "";
+        notifyGroupNewOrder({
+          orderNum: fullOrder.order_number ?? orderId.slice(-6),
+          orderId,
+          customerName: fullOrder.customer_name,
+          neighborhood: fullOrder.neighborhood ?? "-",
+          items: itemLines,
+          total: Number(fullOrder.total),
+          paymentMethod: "card",
+          notes: fullOrder.notes,
+        }).catch(() => {});
+      }
+
       return NextResponse.json({ status: "approved", orderId });
     }
 

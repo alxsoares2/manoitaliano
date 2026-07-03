@@ -72,6 +72,7 @@ export default function MenuItemModal({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const isEditing = item !== null;
   const hasSizes = form.kind === "simple" && isSizeOptions(form.options);
@@ -105,6 +106,13 @@ export default function MenuItemModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, ...payload }),
       });
+      if (res.status === 401) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error ?? "Sessão expirada — faça login novamente");
+        setSessionExpired(true);
+        setSaving(false);
+        return;
+      }
       if (!res.ok) saveError = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     } else {
       const res = await fetch("/api/admin/menu-items", {
@@ -112,6 +120,13 @@ export default function MenuItemModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error ?? "Sessão expirada — faça login novamente");
+        setSessionExpired(true);
+        setSaving(false);
+        return;
+      }
       if (!res.ok) saveError = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     }
 
@@ -305,7 +320,16 @@ export default function MenuItemModal({
           )}
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-medium text-red-600">{error}</p>
+            {sessionExpired && (
+              <a href="/admin/login" className="mt-2 inline-block text-xs font-semibold text-red-500 underline">
+                Ir para o login →
+              </a>
+            )}
+          </div>
+        )}
 
         <button type="submit" disabled={saving}
           className="mt-6 w-full rounded-xl bg-gold px-5 py-3 font-semibold text-white transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-60">

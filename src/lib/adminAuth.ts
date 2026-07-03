@@ -25,23 +25,27 @@ function sign(payload: object): string {
   return `${data}.${sig}`;
 }
 
-function verify(token: string): (AdminUser & { exp: number }) | null {
+type VerifyResult =
+  | { ok: true; payload: AdminUser & { exp: number } }
+  | { ok: false; reason: "expired" | "invalid" };
+
+function verify(token: string): VerifyResult {
   const dot = token.lastIndexOf(".");
-  if (dot === -1) return null;
+  if (dot === -1) return { ok: false, reason: "invalid" };
   const data = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac("sha256", SECRET).update(data).digest("base64url");
   try {
     if (!crypto.timingSafeEqual(Buffer.from(sig, "base64url"), Buffer.from(expected, "base64url")))
-      return null;
+      return { ok: false, reason: "invalid" };
   } catch {
-    return null;
+    return { ok: false, reason: "invalid" };
   }
   const payload = JSON.parse(Buffer.from(data, "base64url").toString()) as AdminUser & {
     exp: number;
   };
-  if (Date.now() > payload.exp) return null;
-  return payload;
+  if (Date.now() > payload.exp) return { ok: false, reason: "expired" };
+  return { ok: true, payload };
 }
 
 // ── Cookie helpers ───────────────────────────────────────────────────────────
@@ -63,14 +67,30 @@ export async function clearSessionCookie() {
   cookieStore.delete(COOKIE);
 }
 
-export async function getSessionUser(): Promise<AdminUser | null> {
+export type SessionResult =
+  | { user: AdminUser; error: null }
+  | { user: null; error: "no_session" | "expired" | "invalid" };
+
+export async function getSession(): Promise<SessionResult> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE)?.value;
-  if (!token) return null;
-  const payload = verify(token);
-  if (!payload) return null;
-  return { id: payload.id, email: payload.email, name: payload.name, role: payload.role };
+  if (!token) return { user: null, error: "no_session" };
+  const result = verify(token);
+  if (!result.ok) return { user: null, error: result.reason };
+  const { payload } = result;
+  return { user: { id: payload.id, email: payload.email, name: payload.name, role: payload.role }, error: null };
 }
+
+export async function getSessionUser(): Promise<AdminUser | null> {
+  const { user } = await getSession();
+  return user;
+}
+
+export const SESSION_ERROR_MESSAGES: Record<string, string> = {
+  no_session: "Nenhuma sessão ativa — faça login",
+  expired: "Sessão expirada — faça login novamente",
+  invalid: "Sessão inválida — faça login novamente",
+};
 
 // ── DB helpers ───────────────────────────────────────────────────────────────
 

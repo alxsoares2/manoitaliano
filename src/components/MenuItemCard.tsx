@@ -7,17 +7,59 @@ import { formatPrice } from "@/lib/format";
 import PizzaModal from "./PizzaModal";
 import SimpleItemModal from "./SimpleItemModal";
 
-function ItemThumb({ url, name }: { url?: string | null; name: string }) {
-  if (url) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
+function ImageLightbox({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+        aria-label="Fechar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-5 w-5">
+          <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
         alt={name}
-        className="h-20 w-20 shrink-0 rounded-lg object-cover"
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl"
       />
+      <p className="absolute bottom-6 left-0 right-0 text-center text-sm font-medium text-white/70">{name}</p>
+    </div>
+  );
+}
+
+function ItemThumb({ url, name }: { url?: string | null; name: string }) {
+  const [lightbox, setLightbox] = useState(false);
+
+  if (url) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setLightbox(true); }}
+          className="group/thumb relative shrink-0 overflow-hidden rounded-lg"
+          aria-label={`Ver foto de ${name}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={name} className="h-20 w-20 object-cover transition group-hover/thumb:scale-105" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover/thumb:bg-black/30">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="h-5 w-5 opacity-0 drop-shadow transition group-hover/thumb:opacity-100">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0zm-2 2l2 2" />
+              <path strokeLinecap="round" d="M11 8v6M8 11h6" />
+            </svg>
+          </div>
+        </button>
+        {lightbox && <ImageLightbox url={url} name={name} onClose={() => setLightbox(false)} />}
+      </>
     );
   }
+
   return (
     <div
       className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg"
@@ -34,8 +76,8 @@ function ItemThumb({ url, name }: { url?: string | null; name: string }) {
   );
 }
 
-const rowClass =
-  "group flex w-full items-center gap-4 rounded-xl border border-border bg-background-elevated p-3 text-left shadow-sm transition hover:border-foreground/20 hover:shadow-md";
+const cardClass =
+  "group flex w-full items-center gap-4 rounded-xl border border-border bg-background-elevated p-3 shadow-sm transition hover:border-foreground/20 hover:shadow-md";
 
 export default function MenuItemCard({
   item,
@@ -52,8 +94,12 @@ export default function MenuItemCard({
   if (item.kind === "pizza") {
     return (
       <>
-        <button onClick={() => !storeClosed && setModalOpen(true)} disabled={storeClosed} className={`${rowClass} disabled:cursor-not-allowed disabled:opacity-50`}>
-          <div className="min-w-0 flex-1">
+        <div className={cardClass}>
+          <button
+            onClick={() => !storeClosed && setModalOpen(true)}
+            disabled={storeClosed}
+            className="min-w-0 flex-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <h3 className="truncate font-display text-base font-semibold text-foreground">{item.name}</h3>
             <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p>
             <span className="mt-1.5 block text-sm font-medium text-foreground">
@@ -62,9 +108,9 @@ export default function MenuItemCard({
             <span className="mt-1 inline-block text-xs font-semibold uppercase tracking-widest text-gold-soft">
               Escolher tamanho →
             </span>
-          </div>
+          </button>
           <ItemThumb url={item.image_url} name={item.name} />
-        </button>
+        </div>
         {modalOpen && (
           <PizzaModal pizza={item} siblingPizzas={siblingPizzas} onClose={() => setModalOpen(false)} />
         )}
@@ -80,8 +126,12 @@ export default function MenuItemCard({
 
     return (
       <>
-        <button onClick={() => !storeClosed && setModalOpen(true)} disabled={storeClosed} className={`${rowClass} disabled:cursor-not-allowed disabled:opacity-50`}>
-          <div className="min-w-0 flex-1">
+        <div className={cardClass}>
+          <button
+            onClick={() => !storeClosed && setModalOpen(true)}
+            disabled={storeClosed}
+            className="min-w-0 flex-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <h3 className="truncate font-display text-base font-semibold text-foreground">{item.name}</h3>
             {item.description && (
               <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p>
@@ -92,16 +142,16 @@ export default function MenuItemCard({
             <span className="mt-1 inline-block text-xs font-semibold uppercase tracking-widest text-gold-soft">
               {hasSizes ? "Escolher tamanho →" : "Escolher opção →"}
             </span>
-          </div>
+          </button>
           <ItemThumb url={item.image_url} name={item.name} />
-        </button>
+        </div>
         {modalOpen && <SimpleItemModal item={item} onClose={() => setModalOpen(false)} />}
       </>
     );
   }
 
   return (
-    <div className="flex w-full items-center gap-4 rounded-xl border border-border bg-background-elevated p-3 shadow-sm">
+    <div className={cardClass}>
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-display text-base font-semibold text-foreground">{item.name}</h3>
         {item.description && (

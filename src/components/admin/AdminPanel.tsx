@@ -10,9 +10,10 @@ import CrmCuponsPanel from "./CrmCuponsPanel";
 import AdminDashboard from "./AdminDashboard";
 import AdminReports from "./AdminReports";
 import ConfiguracoesPanel from "./ConfiguracoesPanel";
+import AuditLogsPanel from "./AuditLogsPanel";
 import { AdminRole } from "@/lib/adminAuth";
 
-type Tab = "pedidos" | "cardapio" | "clientes" | "crm" | "dashboard" | "relatorios" | "configuracoes";
+type Tab = "pedidos" | "cardapio" | "clientes" | "crm" | "dashboard" | "relatorios" | "configuracoes" | "auditoria";
 
 type TabDef = { id: Tab; label: string; roles: AdminRole[] };
 
@@ -24,6 +25,7 @@ const TABS: TabDef[] = [
   { id: "dashboard",     label: "Dashboard",       roles: ["admin", "gerente"] },
   { id: "relatorios",    label: "Relatórios",      roles: ["admin", "gerente"] },
   { id: "configuracoes", label: "Configurações",   roles: ["admin", "gerente"] },
+  { id: "auditoria",     label: "Auditoria",        roles: ["admin"] },
 ];
 
 const TAB_SUBTITLES: Record<Tab, string> = {
@@ -34,6 +36,7 @@ const TAB_SUBTITLES: Record<Tab, string> = {
   dashboard:     "Métricas e desempenho em tempo real",
   relatorios:    "Consulte e exporte pedidos por período",
   configuracoes: "Horário de funcionamento, zonas de entrega e usuários",
+  auditoria:     "Registro de todas as ações administrativas",
 };
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -102,6 +105,7 @@ export default function AdminPanel() {
       {activeTab === "dashboard"     && <AdminDashboard />}
       {activeTab === "relatorios"    && <AdminReports />}
       {activeTab === "configuracoes" && <ConfiguracoesPanel />}
+      {activeTab === "auditoria"     && <AuditLogsPanel />}
     </main>
   );
 }
